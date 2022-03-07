@@ -15,6 +15,9 @@ contract BasinDataStore {
     // New data event
     event NewData(Data data);
 
+    // New group event
+    event NewGroup(Group group);
+
     // Data map
     mapping(uint256 => Data) private data;
 
@@ -32,6 +35,17 @@ contract BasinDataStore {
 
     // All group data map
     mapping(string => uint256[]) private groupData;
+
+    // Groups array
+    mapping(string => Group) private groups;
+
+    // Group structure
+    struct Group {
+        string id;
+        string name;
+        string conformance;
+        bool exists;
+    }
 
     // Data structure
     struct Data {
@@ -78,6 +92,8 @@ contract BasinDataStore {
         string memory _group,
         string memory _payload
     ) public payable {
+        require(groupExists(_group), "Group must exist");
+
         Data memory fullPayload = Data(
             _provider,
             _user,
@@ -105,6 +121,44 @@ contract BasinDataStore {
         currentIndex += 1;
 
         emit NewData(fullPayload);
+    }
+
+    /// @notice Creates a new group with conformance rules
+    /// @dev Creates a new group. Public
+    function createGroup(
+        string memory _id,
+        string memory _name,
+        string memory _conformance
+    ) public {
+        require(!groupExists(_id), "Group already exists");
+
+        // TODO - Add create group logic
+        Group memory group = Group(_id, _name, _conformance, true);
+
+        console.log("Created new group: %s", _name);
+
+        groups[_id] = group;
+
+        emit NewGroup(group);
+    }
+
+    /// @notice Checks payload against group conformance
+    /// @dev Checks payload against group conformance. Private
+    function conformsToGroup(string memory _data, string memory _id)
+        private
+        view
+        returns (bool)
+    {
+        require(groupExists(_id), "Group must exist");
+
+        // TODO - Add conformance logic
+
+        return true;
+    }
+
+    /// @dev Checks if group exists. Private
+    function groupExists(string memory _id) private view returns (bool) {
+        return groups[_id].exists;
     }
 
     /// @notice Fetches all user data for current address
