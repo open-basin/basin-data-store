@@ -92,7 +92,7 @@ contract BasinDataStore {
         string memory _group,
         string memory _payload
     ) public payable {
-        require(groupExists(_group), "Group must exist");
+        require(conformsToGroup(_payload, _group), "Data must conform to group");
 
         Data memory fullPayload = Data(
             _provider,
@@ -121,44 +121,6 @@ contract BasinDataStore {
         currentIndex += 1;
 
         emit NewData(fullPayload);
-    }
-
-    /// @notice Creates a new group with conformance rules
-    /// @dev Creates a new group. Public
-    function createGroup(
-        string memory _id,
-        string memory _name,
-        string memory _conformance
-    ) public {
-        require(!groupExists(_id), "Group already exists");
-
-        // TODO - Add create group logic
-        Group memory group = Group(_id, _name, _conformance, true);
-
-        console.log("Created new group: %s", _name);
-
-        groups[_id] = group;
-
-        emit NewGroup(group);
-    }
-
-    /// @notice Checks payload against group conformance
-    /// @dev Checks payload against group conformance. Private
-    function conformsToGroup(string memory _data, string memory _id)
-        private
-        view
-        returns (bool)
-    {
-        require(groupExists(_id), "Group must exist");
-
-        // TODO - Add conformance logic
-
-        return true;
-    }
-
-    /// @dev Checks if group exists. Private
-    function groupExists(string memory _id) private view returns (bool) {
-        return groups[_id].exists;
     }
 
     /// @notice Fetches all user data for current address
@@ -291,5 +253,52 @@ contract BasinDataStore {
         }
 
         return result;
+    }
+
+        /// @notice Creates a new group with conformance rules
+    /// @dev Creates a new group. Public
+    function createGroup(
+        string memory _id,
+        string memory _name,
+        string memory _conformance
+    ) public {
+        require(!groupExists(_id), "Group already exists");
+
+        // TODO - Add create group logic
+        Group memory group = Group(_id, _name, _conformance, true);
+
+        console.log("Created new group: %s", _name);
+
+        groups[_id] = group;
+
+        emit NewGroup(group);
+    }
+
+    /// @notice Checks payload against group conformance
+    /// @dev Checks payload against group conformance. Private
+    function conformsToGroup(string memory _payload, string memory _id)
+        private
+        view
+        returns (bool)
+    {
+        require(groupExists(_id), "Group must exist");
+
+        Group memory group = groups[_id];
+
+        string memory strippedPayload = stripPayload(_payload);
+
+        return keccak256(bytes(group.conformance)) == keccak256(bytes(strippedPayload));
+    }
+
+    function stripPayload(string memory _payload) private view returns (string memory) {
+        // TODO - strip out value and leave keys
+        // https://medium.com/aventus/working-with-strings-in-solidity-473bcc59dc04
+
+        return "";
+    }
+
+    /// @dev Checks if group exists. Private
+    function groupExists(string memory _id) private view returns (bool) {
+        return groups[_id].exists;
     }
 }
