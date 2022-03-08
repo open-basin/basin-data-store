@@ -19,8 +19,8 @@ contract BasinDataStore {
     // New data event
     event NewData(Data data);
 
-    // New group event
-    event NewGroup(Group group);
+    // New Standard event
+    event NewStandard(Standard standard);
 
     // Data map
     mapping(uint256 => Data) private data;
@@ -28,23 +28,23 @@ contract BasinDataStore {
     // User data map
     mapping(address => uint256[]) private userData;
 
-    // User group data map
-    mapping(address => mapping(string => uint256[])) private userGroupData;
+    // User Standard data map
+    mapping(address => mapping(string => uint256[])) private userStandardData;
 
     // All provider data map
     mapping(address => uint256[]) private providerData;
 
-    // Provider group data map
-    mapping(address => mapping(string => uint256[])) private providerGroupData;
+    // Provider Standard data map
+    mapping(address => mapping(string => uint256[])) private providerStandardData;
 
-    // All group data map
-    mapping(string => uint256[]) private groupData;
+    // All Standard data map
+    mapping(string => uint256[]) private standardData;
 
-    // Groups array
-    mapping(string => Group) private groups;
+    // Standards array
+    mapping(string => Standard) private standards;
 
-    // Group structure
-    struct Group {
+    // Standard structure
+    struct Standard {
         string id;
         string name;
         string conformance;
@@ -55,7 +55,7 @@ contract BasinDataStore {
     struct Data {
         address provider;
         address user;
-        string group;
+        string standard;
         uint256 timestamp;
         string payload;
     }
@@ -86,40 +86,50 @@ contract BasinDataStore {
     /// @dev Create a data payload and store it in the available on chain data structures
     /// @param _provider the provider of the data - shared owner
     /// @param _user the owner of the data - shared owner
-    /// @param _group the group of the data
+    /// @param _standard the Standard of the data
     /// @param _payload the data to be stored
     function storeData(
         address payable _provider,
         address payable _user,
-        string memory _group,
+        string memory _standard,
         string memory _payload
     ) public payable {
         require(
-            conformsToGroup(_payload, _group),
-            "Data must conform to group"
+            conformsToStandard(_payload, _standard),
+            "Data must conform to standard"
+        );
+
+        string memory json = Base64.encode(
+            bytes(
+                string(
+                    abi.encodePacked(
+                        _payload
+                    )
+                )
+            )
         );
 
         Data memory fullPayload = Data(
             _provider,
             _user,
-            _group,
+            _standard,
             block.timestamp,
-            _payload
+            json
         );
 
         console.log("user: '%s'", _user);
         console.log("provider: '%s'", _provider);
-        console.log("group: '%s'", _group);
+        console.log("standard: '%s'", _standard);
         console.log("payload: '%s'", _payload);
 
         data[_tokenIds.current()] = fullPayload;
 
         userData[_user].push(_tokenIds.current());
         providerData[_provider].push(_tokenIds.current());
-        groupData[_group].push(_tokenIds.current());
+        standardData[_standard].push(_tokenIds.current());
 
-        userGroupData[_user][_group].push(_tokenIds.current());
-        providerGroupData[_user][_group].push(_tokenIds.current());
+        userStandardData[_user][_standard].push(_tokenIds.current());
+        providerStandardData[_user][_standard].push(_tokenIds.current());
 
         console.log("Data stored on chain at index:", _tokenIds.current());
 
@@ -200,16 +210,16 @@ contract BasinDataStore {
         return result;
     }
 
-    /// @notice Fetches all group data for group
-    /// @dev Fetches all group data. Public
-    function fetchDataForGroup(string memory _group)
+    /// @notice Fetches all Standard data for Standard
+    /// @dev Fetches all Standard data. Public
+    function fetchDataForStandard(string memory _standard)
         public
         view
         returns (Data[] memory)
     {
-        console.log("Fetching group data for", _group);
+        console.log("Fetching standard data for", _standard);
 
-        uint256[] memory temp = groupData[_group];
+        uint256[] memory temp = standardData[_standard];
         uint256 length = temp.length;
         Data[] memory result = new Data[](length);
 
@@ -220,16 +230,16 @@ contract BasinDataStore {
         return result;
     }
 
-    /// @notice Fetches all user data for user in a group
-    /// @dev Fetches all user data in a group. Public
-    function fetchDataForUserInGroup(address _user, string memory _group)
+    /// @notice Fetches all user data for user in a standard
+    /// @dev Fetches all user data in a standard. Public
+    function fetchDataForUserInStandard(address _user, string memory _standard)
         public
         view
         returns (Data[] memory)
     {
-        console.log("Fetching group user data for", _user);
+        console.log("Fetching standard user data for", _user);
 
-        uint256[] memory temp = userGroupData[_user][_group];
+        uint256[] memory temp = userStandardData[_user][_standard];
         uint256 length = temp.length;
         Data[] memory result = new Data[](length);
 
@@ -241,15 +251,15 @@ contract BasinDataStore {
     }
 
     /// @notice Fetches all provider data for provider in user
-    /// @dev Fetches all provider data in a group. Public
-    function fetchDataForProvider(address _provider, string memory _group)
+    /// @dev Fetches all provider data in a standard. Public
+    function fetchDataForProvider(address _provider, string memory _standard)
         public
         view
         returns (Data[] memory)
     {
-        console.log("Fetching group provider data for", _provider);
+        console.log("Fetching standard provider data for", _provider);
 
-        uint256[] memory temp = providerGroupData[_provider][_group];
+        uint256[] memory temp = providerStandardData[_provider][_standard];
         uint256 length = temp.length;
         Data[] memory result = new Data[](length);
 
@@ -260,40 +270,44 @@ contract BasinDataStore {
         return result;
     }
 
-    /// @notice Creates a new group with conformance rules
-    /// @dev Creates a new group. Public
-    function createGroup(
+    /// @notice Creates a new standard with conformance rules
+    /// @dev Creates a new standard. Public
+    function createStandard(
         string memory _id,
         string memory _name,
         string memory _conformance
     ) public {
-        require(!groupExists(_id), "Group already exists");
+        require(!standardExists(_id), "Standard already exists");
 
-        // TODO - Add create group logic
-        Group memory group = Group(_id, _name, _conformance, true);
+        // TODO - Add create standard logic
+        Standard memory standard = Standard(_id, _name, _conformance, true);
 
-        console.log("Created new group: %s", _name);
+        console.log("Created new standard: %s", _name);
 
-        groups[_id] = group;
+        standards[_id] = standard;
 
-        emit NewGroup(group);
+        emit NewStandard(standard);
     }
 
-    /// @notice Checks payload against group conformance
-    /// @dev Checks payload against group conformance. Private
-    function conformsToGroup(string memory _payload, string memory _id)
+
+
+    // MARK: - Standard Conformance
+
+    /// @notice Checks payload against Standard conformance
+    /// @dev Checks payload against Standard conformance. Private
+    function conformsToStandard(string memory _payload, string memory _id)
         private
         view
         returns (bool)
     {
-        require(groupExists(_id), "Group must exist");
+        require(standardExists(_id), "Standard must exist");
 
-        Group memory group = groups[_id];
+        Standard memory standard = standards[_id];
 
         string memory strippedPayload = stripPayload(_payload);
 
         return
-            keccak256(bytes(group.conformance)) ==
+            keccak256(bytes(standard.conformance)) ==
             keccak256(bytes(strippedPayload));
     }
 
@@ -308,8 +322,8 @@ contract BasinDataStore {
         return "";
     }
 
-    /// @dev Checks if group exists. Private
-    function groupExists(string memory _id) private view returns (bool) {
-        return groups[_id].exists;
+    /// @dev Checks if Standard exists. Private
+    function standardExists(string memory _id) private view returns (bool) {
+        return standards[_id].exists;
     }
 }
