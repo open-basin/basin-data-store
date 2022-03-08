@@ -10,6 +10,19 @@ const main = async () => {
 
     console.log("Contract deployed to:", basinDataStoreContract.address);
     console.log("Contract deployed by:", owner.address);
+
+    let createStandard = await basinDataStoreContract.createStandard(
+        "FirstStandard",
+        "The First Standard",
+        "{'id':string}"
+    );
+    await createStandard.wait();
+
+    let storeData1 = await basinDataStoreContract.storeData(owner.address, randAddress, "FirstStandard", "{'id': '123456'}");
+    await storeData1.wait();
+
+    let providerData1 = await basinDataStoreContract.fetchProviderData();
+    console.log("Provider Data 1:", providerData1);
 };
 
 const runMain = async () => {

@@ -94,20 +94,7 @@ contract BasinDataStore {
         string memory _standard,
         string memory _payload
     ) public payable {
-        require(
-            conformsToStandard(_payload, _standard),
-            "Data must conform to standard"
-        );
-
-        string memory json = Base64.encode(
-            bytes(
-                string(
-                    abi.encodePacked(
-                        _payload
-                    )
-                )
-            )
-        );
+        string memory json = encodedPayload(_payload);
 
         Data memory fullPayload = Data(
             _provider,
@@ -121,6 +108,8 @@ contract BasinDataStore {
         console.log("provider: '%s'", _provider);
         console.log("standard: '%s'", _standard);
         console.log("payload: '%s'", _payload);
+
+        console.log("encoded: %s", json);
 
         data[_tokenIds.current()] = fullPayload;
 
@@ -148,7 +137,7 @@ contract BasinDataStore {
         Data[] memory result = new Data[](length);
 
         for (uint256 i = 0; i < length; i += 1) {
-            result[i] = data[temp[i]];
+            result[i] = rawData(data[temp[i]]);
         }
 
         return result;
@@ -164,7 +153,7 @@ contract BasinDataStore {
         Data[] memory result = new Data[](length);
 
         for (uint256 i = 0; i < length; i += 1) {
-            result[i] = data[temp[i]];
+            result[i] = rawData(data[temp[i]]);
         }
 
         return result;
@@ -184,7 +173,7 @@ contract BasinDataStore {
         Data[] memory result = new Data[](length);
 
         for (uint256 i = 0; i < length; i += 1) {
-            result[i] = data[temp[i]];
+            result[i] = rawData(data[temp[i]]);
         }
 
         return result;
@@ -204,7 +193,7 @@ contract BasinDataStore {
         Data[] memory result = new Data[](length);
 
         for (uint256 i = 0; i < length; i += 1) {
-            result[i] = data[temp[i]];
+            result[i] = rawData(data[temp[i]]);
         }
 
         return result;
@@ -224,7 +213,7 @@ contract BasinDataStore {
         Data[] memory result = new Data[](length);
 
         for (uint256 i = 0; i < length; i += 1) {
-            result[i] = data[temp[i]];
+            result[i] = rawData(data[temp[i]]);
         }
 
         return result;
@@ -244,7 +233,7 @@ contract BasinDataStore {
         Data[] memory result = new Data[](length);
 
         for (uint256 i = 0; i < length; i += 1) {
-            result[i] = data[temp[i]];
+            result[i] = rawData(data[temp[i]]);
         }
 
         return result;
@@ -264,7 +253,7 @@ contract BasinDataStore {
         Data[] memory result = new Data[](length);
 
         for (uint256 i = 0; i < length; i += 1) {
-            result[i] = data[temp[i]];
+            result[i] = rawData(data[temp[i]]);
         }
 
         return result;
@@ -289,8 +278,6 @@ contract BasinDataStore {
         emit NewStandard(standard);
     }
 
-
-
     // MARK: - Standard Conformance
 
     /// @notice Checks payload against Standard conformance
@@ -311,6 +298,49 @@ contract BasinDataStore {
             keccak256(bytes(strippedPayload));
     }
 
+    /// @dev Checks if Standard exists. Private
+    function standardExists(string memory _id) private view returns (bool) {
+        return standards[_id].exists;
+    }
+
+    // Mark: - Helpers
+
+    /// @dev Gets the raw value
+    function rawData(Data memory _fullPayload) private pure returns (Data memory) {
+        Data memory newData = Data(
+            _fullPayload.provider,
+            _fullPayload.user,
+            _fullPayload.standard,
+            _fullPayload.timestamp,
+            decodedPayload(_fullPayload.payload)
+        );
+
+        return newData;
+    }
+
+    /// @dev Encodes payloads
+    function encodedPayload(string memory _payload) private pure returns (string memory) {
+        string memory json = Base64.encode(
+            bytes(
+                string(
+                    abi.encodePacked(
+                        _payload
+                    )
+                )
+            )
+        );
+
+        return json;
+    }
+
+    /// @dev Decodes payloads to return raw values
+    function decodedPayload(string memory _payload) private pure returns (string memory) {
+        bytes memory rawPayload = Base64.decode(_payload);
+
+        return string(rawPayload);
+    }
+
+    /// @dev Strips the payload of values
     function stripPayload(string memory _payload)
         private
         view
@@ -320,10 +350,5 @@ contract BasinDataStore {
         // https://medium.com/aventus/working-with-strings-in-solidity-473bcc59dc04
 
         return "";
-    }
-
-    /// @dev Checks if Standard exists. Private
-    function standardExists(string memory _id) private view returns (bool) {
-        return standards[_id].exists;
     }
 }
