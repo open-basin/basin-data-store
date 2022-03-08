@@ -4,13 +4,17 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 
+import {Counters} from "./libraries/Counters.sol";
+import {Base64} from "./libraries/Base64.sol";
+
 // Basin Contract 0
 contract BasinDataStore {
     // Contract owner
     address payable private basin;
 
-    // Current data index
-    uint256 private currentIndex;
+    // Token Ids
+    using Counters for Counters.Counter;
+    Counters.Counter private _tokenIds;
 
     // New data event
     event NewData(Data data);
@@ -61,8 +65,6 @@ contract BasinDataStore {
         console.log("Basin contract constructed");
 
         basin = payable(msg.sender);
-
-        currentIndex = 0;
     }
 
     /// @notice Fetches all data for contract owner
@@ -70,7 +72,7 @@ contract BasinDataStore {
     function fetchAllData() public view returns (Data[] memory) {
         require(msg.sender == basin, "Must be contract owner");
 
-        uint256 length = currentIndex - 2;
+        uint256 length = _tokenIds.current() - 2;
         Data[] memory result = new Data[](length);
 
         for (uint256 i = 0; i < length; i += 1) {
@@ -92,7 +94,10 @@ contract BasinDataStore {
         string memory _group,
         string memory _payload
     ) public payable {
-        require(conformsToGroup(_payload, _group), "Data must conform to group");
+        require(
+            conformsToGroup(_payload, _group),
+            "Data must conform to group"
+        );
 
         Data memory fullPayload = Data(
             _provider,
@@ -107,18 +112,18 @@ contract BasinDataStore {
         console.log("group: '%s'", _group);
         console.log("payload: '%s'", _payload);
 
-        data[currentIndex] = fullPayload;
+        data[_tokenIds.current()] = fullPayload;
 
-        userData[_user].push(currentIndex);
-        providerData[_provider].push(currentIndex);
-        groupData[_group].push(currentIndex);
+        userData[_user].push(_tokenIds.current());
+        providerData[_provider].push(_tokenIds.current());
+        groupData[_group].push(_tokenIds.current());
 
-        userGroupData[_user][_group].push(currentIndex);
-        providerGroupData[_user][_group].push(currentIndex);
+        userGroupData[_user][_group].push(_tokenIds.current());
+        providerGroupData[_user][_group].push(_tokenIds.current());
 
-        console.log("Data stored on chain at index:", currentIndex);
+        console.log("Data stored on chain at index:", _tokenIds.current());
 
-        currentIndex += 1;
+        _tokenIds.increment();
 
         emit NewData(fullPayload);
     }
@@ -255,7 +260,7 @@ contract BasinDataStore {
         return result;
     }
 
-        /// @notice Creates a new group with conformance rules
+    /// @notice Creates a new group with conformance rules
     /// @dev Creates a new group. Public
     function createGroup(
         string memory _id,
@@ -287,10 +292,16 @@ contract BasinDataStore {
 
         string memory strippedPayload = stripPayload(_payload);
 
-        return keccak256(bytes(group.conformance)) == keccak256(bytes(strippedPayload));
+        return
+            keccak256(bytes(group.conformance)) ==
+            keccak256(bytes(strippedPayload));
     }
 
-    function stripPayload(string memory _payload) private view returns (string memory) {
+    function stripPayload(string memory _payload)
+        private
+        view
+        returns (string memory)
+    {
         // TODO - strip out value and leave keys
         // https://medium.com/aventus/working-with-strings-in-solidity-473bcc59dc04
 
