@@ -53,6 +53,7 @@ contract BasinDataStore {
 
     // Data structure
     struct Data {
+        uint256 id;
         address provider;
         address user;
         string standard;
@@ -97,6 +98,7 @@ contract BasinDataStore {
         string memory json = encodedPayload(_payload);
 
         Data memory fullPayload = Data(
+            _tokenIds.current(),
             _provider,
             _user,
             _standard,
@@ -308,6 +310,7 @@ contract BasinDataStore {
     /// @dev Gets the raw value
     function rawData(Data memory _fullPayload) private pure returns (Data memory) {
         Data memory newData = Data(
+            _fullPayload.id,
             _fullPayload.provider,
             _fullPayload.user,
             _fullPayload.standard,
