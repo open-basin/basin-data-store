@@ -12,6 +12,12 @@ contract BasinDataStore {
     // Contract owner
     address payable private basin;
 
+    // Contract life state
+    bool private destroyed = false;
+    
+    // Contract enabled state
+    bool private enabled = true;
+
     // Token Ids
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
@@ -68,10 +74,47 @@ contract BasinDataStore {
         basin = payable(msg.sender);
     }
 
+    /// @dev Turns the contract off.. for good
+    function destroy() public payable returns (Data[] memory) {
+        require(!destroyed, "Contract is destroyed");
+        ownerCheckpoint();
+
+        enabled = false;
+        destroyed = true;
+    }
+
+    /// @dev Turns the contract off
+    function turnOff() public payable returns (Data[] memory) {
+        require(!destroyed, "Contract is destroyed");
+        ownerCheckpoint();
+
+        enabled = false;
+    }
+
+    /// @dev Turns the contract on
+    function turnOn() public payable returns (Data[] memory) {
+        require(!destroyed, "Contract is destroyed");
+        ownerCheckpoint();
+
+        enabled = true;
+    }
+
+    /// @dev Checks if the contract can be accessed
+    function contractCheckpoint() private view {
+        require(!destroyed, "Contract is destroyed");
+        require(enabled, "Contract is disabled");
+    }
+
+    /// @dev Checks if the signer is the contract owner
+    function ownerCheckpoint() private view {
+        require(msg.sender == basin, "Must be contract owner");
+    }
+
     /// @notice Fetches all data for contract owner
     /// @dev Fetches all data. Private to contract owner
     function fetchAllData() public view returns (Data[] memory) {
-        require(msg.sender == basin, "Must be contract owner");
+        contractCheckpoint();
+        ownerCheckpoint();
 
         uint256 length = _tokenIds.current() - 2;
         Data[] memory result = new Data[](length);
@@ -81,6 +124,22 @@ contract BasinDataStore {
         }
 
         return result;
+    }
+
+    /// @notice Fetches all standards for contract owner
+    /// @dev Fetches all standards. Private to contract owner
+    function fetchAllStandards() public view returns (Data[] memory) {
+        contractCheckpoint();
+        ownerCheckpoint();
+    }
+
+    /// @notice Fetches current token
+    /// @dev Fetches current tokenId
+    function fetchCurrentToken() public view returns (uint256) {
+        contractCheckpoint();
+        ownerCheckpoint();
+
+        return _tokenIds.current();
     }
 
     /// @notice Stores data in the on chain data structures
@@ -95,6 +154,8 @@ contract BasinDataStore {
         string memory _standard,
         string memory _payload
     ) public payable {
+        contractCheckpoint();
+
         string memory json = encodedPayload(_payload);
 
         Data memory fullPayload = Data(
@@ -132,6 +193,8 @@ contract BasinDataStore {
     /// @notice Fetches all user data for current address
     /// @dev Fetches all user data. Private to sender
     function fetchUserData() public view returns (Data[] memory) {
+        contractCheckpoint();
+
         console.log("Fetching user data for", msg.sender);
 
         uint256[] memory temp = userData[msg.sender];
@@ -148,6 +211,8 @@ contract BasinDataStore {
     /// @notice Fetches all provider data for current address
     /// @dev Fetches all provider data. Private to sender
     function fetchProviderData() public view returns (Data[] memory) {
+        contractCheckpoint();
+
         console.log("Fetching provider data for", msg.sender);
 
         uint256[] memory temp = providerData[msg.sender];
@@ -168,6 +233,8 @@ contract BasinDataStore {
         view
         returns (Data[] memory)
     {
+        contractCheckpoint();
+
         console.log("Fetching user data for", _user);
 
         uint256[] memory temp = userData[_user];
@@ -188,6 +255,8 @@ contract BasinDataStore {
         view
         returns (Data[] memory)
     {
+        contractCheckpoint();
+
         console.log("Fetching provider data for", _provider);
 
         uint256[] memory temp = providerData[_provider];
@@ -208,6 +277,8 @@ contract BasinDataStore {
         view
         returns (Data[] memory)
     {
+        contractCheckpoint();
+
         console.log("Fetching standard data for", _standard);
 
         uint256[] memory temp = standardData[_standard];
@@ -228,6 +299,8 @@ contract BasinDataStore {
         view
         returns (Data[] memory)
     {
+        contractCheckpoint();
+
         console.log("Fetching standard user data for", _user);
 
         uint256[] memory temp = userStandardData[_user][_standard];
@@ -248,6 +321,8 @@ contract BasinDataStore {
         view
         returns (Data[] memory)
     {
+        contractCheckpoint();
+
         console.log("Fetching standard provider data for", _provider);
 
         uint256[] memory temp = providerStandardData[_provider][_standard];
@@ -268,6 +343,8 @@ contract BasinDataStore {
         string memory _name,
         string memory _conformance
     ) public {
+        contractCheckpoint();
+
         require(!standardExists(_id), "Standard already exists");
 
         // TODO - Add create standard logic
@@ -308,7 +385,11 @@ contract BasinDataStore {
     // Mark: - Helpers
 
     /// @dev Gets the raw value
-    function rawData(Data memory _fullPayload) private pure returns (Data memory) {
+    function rawData(Data memory _fullPayload)
+        private
+        pure
+        returns (Data memory)
+    {
         Data memory newData = Data(
             _fullPayload.id,
             _fullPayload.provider,
@@ -322,22 +403,24 @@ contract BasinDataStore {
     }
 
     /// @dev Encodes payloads
-    function encodedPayload(string memory _payload) private pure returns (string memory) {
+    function encodedPayload(string memory _payload)
+        private
+        pure
+        returns (string memory)
+    {
         string memory json = Base64.encode(
-            bytes(
-                string(
-                    abi.encodePacked(
-                        _payload
-                    )
-                )
-            )
+            bytes(string(abi.encodePacked(_payload)))
         );
 
         return json;
     }
 
     /// @dev Decodes payloads to return raw values
-    function decodedPayload(string memory _payload) private pure returns (string memory) {
+    function decodedPayload(string memory _payload)
+        private
+        pure
+        returns (string memory)
+    {
         bytes memory rawPayload = Base64.decode(_payload);
 
         return string(rawPayload);
