@@ -14,13 +14,17 @@ contract BasinDataStore {
 
     // Contract life state
     bool private destroyed = false;
-    
+
     // Contract enabled state
     bool private enabled = true;
 
-    // Token Ids
+    // Token Ids for data
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
+
+    // Token Ids for standards
+    using Counters for Counters.Counter;
+    Counters.Counter private _standardIds;
 
     // New data event
     event NewData(Data data);
@@ -35,23 +39,24 @@ contract BasinDataStore {
     mapping(address => uint256[]) private userData;
 
     // User Standard data map
-    mapping(address => mapping(string => uint256[])) private userStandardData;
+    mapping(address => mapping(uint256 => uint256[])) private userStandardData;
 
     // All provider data map
     mapping(address => uint256[]) private providerData;
 
     // Provider Standard data map
-    mapping(address => mapping(string => uint256[])) private providerStandardData;
+    mapping(address => mapping(uint256 => uint256[]))
+        private providerStandardData;
 
     // All Standard data map
-    mapping(string => uint256[]) private standardData;
+    mapping(uint256 => uint256[]) private standardData;
 
     // Standards array
-    mapping(string => Standard) private standards;
+    mapping(uint256 => Standard) private standards;
 
     // Standard structure
     struct Standard {
-        string id;
+        uint256 id;
         string name;
         string conformance;
         bool exists;
@@ -62,7 +67,7 @@ contract BasinDataStore {
         uint256 id;
         address provider;
         address user;
-        string standard;
+        uint256 standard;
         uint256 timestamp;
         string payload;
     }
@@ -75,7 +80,7 @@ contract BasinDataStore {
     }
 
     /// @dev Turns the contract off.. for good
-    function destroy() public payable returns (Data[] memory) {
+    function destroy() public payable {
         require(!destroyed, "Contract is destroyed");
         ownerCheckpoint();
 
@@ -84,7 +89,7 @@ contract BasinDataStore {
     }
 
     /// @dev Turns the contract off
-    function turnOff() public payable returns (Data[] memory) {
+    function turnOff() public payable {
         require(!destroyed, "Contract is destroyed");
         ownerCheckpoint();
 
@@ -92,7 +97,7 @@ contract BasinDataStore {
     }
 
     /// @dev Turns the contract on
-    function turnOn() public payable returns (Data[] memory) {
+    function turnOn() public payable {
         require(!destroyed, "Contract is destroyed");
         ownerCheckpoint();
 
@@ -128,9 +133,18 @@ contract BasinDataStore {
 
     /// @notice Fetches all standards for contract owner
     /// @dev Fetches all standards. Private to contract owner
-    function fetchAllStandards() public view returns (Data[] memory) {
+    function fetchAllStandards() public view returns (Standard[] memory) {
         contractCheckpoint();
         ownerCheckpoint();
+
+        uint256 length = _standardIds.current() - 2;
+        Standard[] memory result = new Standard[](length);
+
+        for (uint256 i = 0; i < length; i += 1) {
+            result[i] = standards[i];
+        }
+
+        return result;
     }
 
     /// @notice Fetches current token
@@ -151,7 +165,7 @@ contract BasinDataStore {
     function storeData(
         address payable _provider,
         address payable _user,
-        string memory _standard,
+        uint256 _standard,
         string memory _payload
     ) public payable {
         contractCheckpoint();
@@ -272,7 +286,7 @@ contract BasinDataStore {
 
     /// @notice Fetches all Standard data for Standard
     /// @dev Fetches all Standard data. Public
-    function fetchDataForStandard(string memory _standard)
+    function fetchDataForStandard(uint256 _standard)
         public
         view
         returns (Data[] memory)
@@ -294,7 +308,7 @@ contract BasinDataStore {
 
     /// @notice Fetches all user data for user in a standard
     /// @dev Fetches all user data in a standard. Public
-    function fetchDataForUserInStandard(address _user, string memory _standard)
+    function fetchDataForUserInStandard(address _user, uint256 _standard)
         public
         view
         returns (Data[] memory)
@@ -316,7 +330,7 @@ contract BasinDataStore {
 
     /// @notice Fetches all provider data for provider in user
     /// @dev Fetches all provider data in a standard. Public
-    function fetchDataForProvider(address _provider, string memory _standard)
+    function fetchDataForProvider(address _provider, uint256 _standard)
         public
         view
         returns (Data[] memory)
@@ -338,30 +352,39 @@ contract BasinDataStore {
 
     /// @notice Creates a new standard with conformance rules
     /// @dev Creates a new standard. Public
-    function createStandard(
-        string memory _id,
-        string memory _name,
-        string memory _conformance
-    ) public {
+    function createStandard(string memory _name, string memory _conformance)
+        public
+        returns (Standard memory)
+    {
         contractCheckpoint();
 
-        require(!standardExists(_id), "Standard already exists");
+        require(
+            !standardNameExists(bytes(_name)),
+            "Standard name already exists"
+        );
 
         // TODO - Add create standard logic
-        Standard memory standard = Standard(_id, _name, _conformance, true);
+        Standard memory standard = Standard(
+            _standardIds.current(),
+            _name,
+            _conformance,
+            true
+        );
 
         console.log("Created new standard: %s", _name);
 
-        standards[_id] = standard;
+        standards[_standardIds.current()] = standard;
 
         emit NewStandard(standard);
+
+        return standard;
     }
 
     // MARK: - Standard Conformance
 
     /// @notice Checks payload against Standard conformance
     /// @dev Checks payload against Standard conformance. Private
-    function conformsToStandard(string memory _payload, string memory _id)
+    function conformsToStandard(string memory _payload, uint256 _id)
         private
         view
         returns (bool)
@@ -377,9 +400,38 @@ contract BasinDataStore {
             keccak256(bytes(strippedPayload));
     }
 
+    /// @dev Gets standard id from name
+    function standardId(string memory _name) public view returns (uint256) {
+        bytes memory byteName = bytes(_name);
+        for (uint256 i = 0; i < _standardIds.current(); i += 1) {
+            bytes memory name = bytes(standards[i].name);
+            if (keccak256(name) == keccak256(byteName)) {
+                return i;
+            }
+        }
+
+        require(false, "Standard does not exist");
+    }
+
     /// @dev Checks if Standard exists. Private
-    function standardExists(string memory _id) private view returns (bool) {
-        return standards[_id].exists;
+    function standardExists(uint256 _id) private view returns (bool) {
+        return _id < _standardIds.current();
+    }
+
+    /// @dev Checks if Standard name exists. Private
+    function standardNameExists(bytes memory _name)
+        private
+        view
+        returns (bool)
+    {
+        for (uint256 i = 0; i < _standardIds.current(); i += 1) {
+            bytes memory name = bytes(standards[i].name);
+            if (keccak256(name) == keccak256(_name)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Mark: - Helpers
