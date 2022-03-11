@@ -12,13 +12,12 @@ const main = async () => {
     console.log("Contract deployed by:", owner.address);
 
     let createStandard = await basinDataStoreContract.createStandard(
-        "FirstStandard",
         "The First Standard",
         "{'id':string}"
     );
     await createStandard.wait();
 
-    let storeData1 = await basinDataStoreContract.storeData(owner.address, randAddress, "FirstStandard", "{'id': '123456'}");
+    let storeData1 = await basinDataStoreContract.storeData(owner.address, randAddress, 0, "{'id': '123456'}");
     await storeData1.wait();
 
     let providerData1 = await basinDataStoreContract.fetchProviderData();
