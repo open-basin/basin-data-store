@@ -411,6 +411,8 @@ contract BasinDataStore {
         }
 
         require(false, "Standard does not exist");
+
+        return 0;
     }
 
     /// @dev Checks if Standard exists. Private
