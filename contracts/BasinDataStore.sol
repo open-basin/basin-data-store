@@ -121,7 +121,7 @@ contract BasinDataStore {
         contractCheckpoint();
         ownerCheckpoint();
 
-        uint256 length = _tokenIds.current() - 2;
+        uint256 length = _tokenIds.current();
         Data[] memory result = new Data[](length);
 
         for (uint256 i = 0; i < length; i += 1) {
