@@ -17,6 +17,9 @@ const main = async () => {
     );
     await createStandard.wait();
 
+    let standards = await basinDataStoreContract.fetchAllStandards();
+    console.log("standards:", standards);
+
     let storeData1 = await basinDataStoreContract.storeData(owner.address, randAddress, 0, "{'id': '123456'}");
     await storeData1.wait();
 

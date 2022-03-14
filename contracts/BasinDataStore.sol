@@ -374,6 +374,8 @@ contract BasinDataStore {
 
         standards[_standardIds.current()] = standard;
 
+        _standardIds.increment();
+
         emit NewStandard(standard);
 
         return standard;
