@@ -136,7 +136,7 @@ contract BasinDataStore {
     function fetchAllStandards() public view returns (Standard[] memory) {
         contractCheckpoint();
 
-        uint256 length = _standardIds.current() - 2;
+        uint256 length = _standardIds.current();
         Standard[] memory result = new Standard[](length);
 
         for (uint256 i = 0; i < length; i += 1) {
