@@ -135,7 +135,6 @@ contract BasinDataStore {
     /// @dev Fetches all standards. Private to contract owner
     function fetchAllStandards() public view returns (Standard[] memory) {
         contractCheckpoint();
-        ownerCheckpoint();
 
         uint256 length = _standardIds.current() - 2;
         Standard[] memory result = new Standard[](length);
