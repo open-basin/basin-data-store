@@ -45,8 +45,7 @@ contract BasinDataStore {
     mapping(address => uint256[]) private providerData;
 
     // Provider Standard data map
-    mapping(address => mapping(uint256 => uint256[]))
-        private providerStandardData;
+    mapping(address => mapping(uint256 => uint256[])) private providerStandardData;
 
     // All Standard data map
     mapping(uint256 => uint256[]) private standardData;
@@ -329,11 +328,10 @@ contract BasinDataStore {
 
     /// @notice Fetches all provider data for provider in user
     /// @dev Fetches all provider data in a standard. Public
-    function fetchDataForProvider(address _provider, uint256 _standard)
-        public
-        view
-        returns (Data[] memory)
-    {
+    function fetchDataForProviderInStandard(
+        address _provider,
+        uint256 _standard
+    ) public view returns (Data[] memory) {
         contractCheckpoint();
 
         console.log("Fetching standard provider data for", _provider);
