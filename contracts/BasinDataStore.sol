@@ -45,7 +45,8 @@ contract BasinDataStore {
     mapping(address => uint256[]) private providerData;
 
     // Provider Standard data map
-    mapping(address => mapping(uint256 => uint256[])) private providerStandardData;
+    mapping(address => mapping(uint256 => uint256[]))
+        private providerStandardData;
 
     // All Standard data map
     mapping(uint256 => uint256[]) private standardData;
@@ -56,7 +57,7 @@ contract BasinDataStore {
     // Standard structure
     struct Standard {
         uint256 id;
-        string name;
+        bytes32 name;
         string conformance;
         bool exists;
     }
@@ -355,15 +356,19 @@ contract BasinDataStore {
     {
         contractCheckpoint();
 
+        bytes memory byteName =  bytes(_name);
+
+        bytes32 newbytes = keccak256(byteName);
+
         require(
-            !standardNameExists(bytes(_name)),
+            !standardNameExists(newbytes),
             "Standard name already exists"
         );
 
         // TODO - Add create standard logic
         Standard memory standard = Standard(
             _standardIds.current(),
-            _name,
+            newbytes,
             _conformance,
             true
         );
@@ -400,11 +405,10 @@ contract BasinDataStore {
     }
 
     /// @dev Gets standard id from name
-    function standardId(string memory _name) public view returns (uint256) {
-        bytes memory byteName = bytes(_name);
+    function standardId(bytes memory _name) public view returns (uint256) {
+        bytes32 byteName = keccak256(_name);
         for (uint256 i = 0; i < _standardIds.current(); i += 1) {
-            bytes memory name = bytes(standards[i].name);
-            if (keccak256(name) == keccak256(byteName)) {
+            if (byteName == standards[i].name) {
                 return i;
             }
         }
@@ -420,14 +424,13 @@ contract BasinDataStore {
     }
 
     /// @dev Checks if Standard name exists. Private
-    function standardNameExists(bytes memory _name)
+    function standardNameExists(bytes32 _name)
         private
         view
         returns (bool)
     {
         for (uint256 i = 0; i < _standardIds.current(); i += 1) {
-            bytes memory name = bytes(standards[i].name);
-            if (keccak256(name) == keccak256(_name)) {
+            if (_name == standards[i].name) {
                 return true;
             }
         }
