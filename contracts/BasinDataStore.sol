@@ -59,7 +59,7 @@ contract BasinDataStore {
     // Standard structure
     struct Standard {
         uint256 id;
-        bytes32 name;
+        string name;
         string schema;
         bool exists;
     }
@@ -137,7 +137,7 @@ contract BasinDataStore {
     ) public payable {
         contractCheckpoint();
 
-        string memory json = encodedPayload(_payload);
+        string memory json = encoded(_payload);
 
         Data memory fullPayload = Data(
             _tokenIds.current(),
@@ -391,12 +391,14 @@ contract BasinDataStore {
 
         require(!standardNameExists(byteName), "Standard name already exists");
 
-        string memory encodedSchema = encodedPayload(_schema);
+        string memory encodedName = encoded(_name);
+
+        string memory encodedSchema = encoded(_schema);
 
         // TODO - Add create standard logic
         Standard memory standard = Standard(
             _standardIds.current(),
-            byteName,
+            encodedName,
             encodedSchema,
             true
         );
@@ -433,10 +435,10 @@ contract BasinDataStore {
     }
 
     /// @dev Gets standard id from name
-    function standardId(bytes memory _name) public view returns (uint256) {
-        bytes32 byteName = keccak256(_name);
+    function standardId(bytes32 _name) public view returns (uint256) {
         for (uint256 i = 0; i < _standardIds.current(); i += 1) {
-            if (byteName == standards[i].name) {
+            bytes32 byteName = keccak256(bytes(standards[i].name));
+            if (byteName == byteName) {
                 return i;
             }
         }
@@ -454,7 +456,8 @@ contract BasinDataStore {
     /// @dev Checks if Standard name exists. Private
     function standardNameExists(bytes32 _name) private view returns (bool) {
         for (uint256 i = 0; i < _standardIds.current(); i += 1) {
-            if (_name == standards[i].name) {
+            bytes32 byteName = keccak256(bytes(standards[i].name));
+            if (_name == byteName) {
                 return true;
             }
         }
@@ -472,8 +475,8 @@ contract BasinDataStore {
     {
         Standard memory standard = Standard(
             _standard.id,
-            _standard.name,
-            decodedPayload(_standard.schema),
+            decoded(_standard.name),
+            decoded(_standard.schema),
             _standard.exists
         );
 
@@ -492,14 +495,14 @@ contract BasinDataStore {
             _fullPayload.user,
             _fullPayload.standard,
             _fullPayload.timestamp,
-            decodedPayload(_fullPayload.payload)
+            decoded(_fullPayload.payload)
         );
 
         return newData;
     }
 
-    /// @dev Encodes payloads
-    function encodedPayload(string memory _payload)
+    /// @dev Encodes
+    function encoded(string memory _payload)
         private
         pure
         returns (string memory)
@@ -511,8 +514,8 @@ contract BasinDataStore {
         return json;
     }
 
-    /// @dev Decodes payloads to return raw values
-    function decodedPayload(string memory _payload)
+    /// @dev Decodes
+    function decoded(string memory _payload)
         private
         pure
         returns (string memory)
