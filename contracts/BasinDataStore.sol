@@ -281,7 +281,7 @@ contract BasinDataStore {
 
         require(_token < _tokenIds.current(), "Invalid token");
 
-        Data memory result = data[_token];
+        Data memory result = rawData(data[_token]);
 
         return result;
     }
