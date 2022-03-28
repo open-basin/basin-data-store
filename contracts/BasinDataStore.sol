@@ -268,6 +268,24 @@ contract BasinDataStore {
         return result;
     }
 
+    /// @notice Fetches data for token
+    /// @dev Fetches specific data for token. Public
+    function fetchDataForToken(uint256 _token)
+        public
+        view
+        returns (Data memory)
+    {
+        contractCheckpoint();
+
+        console.log("Fetching data for", _token);
+
+        require(_token < _tokenIds.current(), "Invalid token");
+
+        Data memory result = data[_token];
+
+        return result;
+    }
+
     /// @notice Fetches all user data for user address
     /// @dev Fetches all user data. Public
     function fetchDataForUser(address _user)
