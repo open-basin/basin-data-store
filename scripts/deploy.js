@@ -1,12 +1,12 @@
 const main = async () => {
-    const ocDataStoreFactory = await hre.ethers.getContractFactory('BasinDataStore');
-    const ocDataStoreContract = await ocDataStoreFactory.deploy({
+    const contractFactory = await hre.ethers.getContractFactory('BasinDataStore');
+    const contract = await contractFactory.deploy({
         value: hre.ethers.utils.parseEther("0.001"),
     });
 
-    await ocDataStoreContract.deployed();
+    await contract.deployed();
 
-    console.log("Contract deployed to:", ocDataStoreContract.address);
+    console.log("Contract deployed to:", contract.address);
 };
 
 const runMain = async () => {

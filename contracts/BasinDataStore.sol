@@ -112,6 +112,7 @@ contract BasinDataStore {
 
     /// @dev Checks if the contract can be accessed
     function contractCheckpoint() private view {
+        ownerCheckpoint();
         require(!destroyed, "Contract is destroyed");
         require(enabled, "Contract is disabled");
     }
@@ -122,6 +123,40 @@ contract BasinDataStore {
     }
 
     // MARK: - Write Methods
+
+    /// @notice Creates a new standard with schema
+    /// @dev Creates a new standard. Public
+    function createStandard(string memory _name, string memory _schema)
+        public
+        returns (Standard memory)
+    {
+        contractCheckpoint();
+
+        string memory encodedName = encoded(_name);
+
+        bytes32 byteName = keccak256(bytes(encodedName));
+
+        require(!standardNameExists(byteName), "Standard name already exists");
+
+        string memory encodedSchema = encoded(_schema);
+
+        Standard memory standard = Standard(
+            _standardIds.current(),
+            encodedName,
+            encodedSchema,
+            true
+        );
+
+        console.log("Created new standard: %s", _name);
+
+        standards[_standardIds.current()] = standard;
+
+        _standardIds.increment();
+
+        emit NewStandard(standard);
+
+        return standard;
+    }
 
     /// @notice Stores data in the on chain data structures
     /// @dev Create a data payload and store it in the available on chain data structures
@@ -173,27 +208,10 @@ contract BasinDataStore {
 
     // MARK: - Read Methods
 
-    /// @notice Fetches all data for contract owner
-    /// @dev Fetches all data. Private to contract owner
-    function fetchAllData() public view returns (Data[] memory) {
-        contractCheckpoint();
-        ownerCheckpoint();
-
-        uint256 length = _tokenIds.current();
-        Data[] memory result = new Data[](length);
-
-        for (uint256 i = 0; i < length; i += 1) {
-            result[i] = data[i];
-        }
-
-        return result;
-    }
-
     /// @notice Fetches current standard token
     /// @dev Fetches current standard tokenId
     function fetchCurrentStandardToken() public view returns (uint256) {
         contractCheckpoint();
-        ownerCheckpoint();
 
         return _standardIds.current();
     }
@@ -202,7 +220,6 @@ contract BasinDataStore {
     /// @dev Fetches current tokenId
     function fetchCurrentToken() public view returns (uint256) {
         contractCheckpoint();
-        ownerCheckpoint();
 
         return _tokenIds.current();
     }
@@ -227,6 +244,21 @@ contract BasinDataStore {
 
         for (uint256 i = 0; i < length; i += 1) {
             result[i] = rawStandard(standards[i]);
+        }
+
+        return result;
+    }
+
+    /// @notice Fetches all data for contract owner
+    /// @dev Fetches all data. Private to contract owner
+    function fetchAllData() public view returns (Data[] memory) {
+        contractCheckpoint();
+
+        uint256 length = _tokenIds.current();
+        Data[] memory result = new Data[](length);
+
+        for (uint256 i = 0; i < length; i += 1) {
+            result[i] = data[i];
         }
 
         return result;
@@ -395,43 +427,6 @@ contract BasinDataStore {
         return result;
     }
 
-    /// @notice Creates a new standard with schema
-    /// @dev Creates a new standard. Public
-    function createStandard(string memory _name, string memory _schema)
-        public
-        returns (Standard memory)
-    {
-        contractCheckpoint();
-
-        bytes memory name = bytes(_name);
-
-        bytes32 byteName = keccak256(name);
-
-        require(!standardNameExists(byteName), "Standard name already exists");
-
-        string memory encodedName = encoded(_name);
-
-        string memory encodedSchema = encoded(_schema);
-
-        // TODO - Add create standard logic
-        Standard memory standard = Standard(
-            _standardIds.current(),
-            encodedName,
-            encodedSchema,
-            true
-        );
-
-        console.log("Created new standard: %s", _name);
-
-        standards[_standardIds.current()] = standard;
-
-        _standardIds.increment();
-
-        emit NewStandard(standard);
-
-        return standard;
-    }
-
     // MARK: - Standard Conformance
 
     /// @notice Checks payload against Standard schema
@@ -483,7 +478,7 @@ contract BasinDataStore {
         return false;
     }
 
-    // Mark: - Helpers
+    // MARK: - Helpers
 
     /// @dev Gets the raw standard
     function rawStandard(Standard memory _standard)
