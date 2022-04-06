@@ -9,10 +9,11 @@ import {Base64} from "./libraries/Base64.sol";
 
 // Basin Contract 0
 contract BasinDataStore {
+    
     // MARK: - Contract Properties
 
     // Contract owner
-    address payable private basin;
+    address payable private owner;
 
     // Contract life state
     bool private destroyed = false;
@@ -78,48 +79,54 @@ contract BasinDataStore {
 
     // Constrcutor
     constructor() payable {
-        console.log("Basin contract constructed");
+        console.log("Basin contract constructed by %s", msg.sender);
+        owner = payable(msg.sender);
+    }
 
-        basin = payable(msg.sender);
+    fallback() external {
+        console.log("Transaction failed");
+    }
+
+    /// @dev Checks if the signer is the contract owner
+    modifier _onlyOwner() {
+        require(msg.sender == owner, "Must be contract owner");
+        _;
+    }
+
+    /// @dev Checks if the contract can be accessed
+    modifier _basin() {
+        require(!destroyed, "Contract is destroyed");
+        require(enabled, "Contract is disabled");
+        _;
     }
 
     // MARK: - Contract Controls
 
+    /// @dev Changes contract owner
+    function changeOwner(address payable _newOwner) public _onlyOwner {
+        owner = _newOwner;
+    }
+
     /// @dev Turns the contract off.. for good
-    function destroy() public payable {
+    function destroy() public _onlyOwner {
         require(!destroyed, "Contract is destroyed");
-        ownerCheckpoint();
 
         enabled = false;
         destroyed = true;
     }
 
     /// @dev Turns the contract off
-    function turnOff() public payable {
+    function turnOff() public _onlyOwner {
         require(!destroyed, "Contract is destroyed");
-        ownerCheckpoint();
 
         enabled = false;
     }
 
     /// @dev Turns the contract on
-    function turnOn() public payable {
+    function turnOn() public _onlyOwner {
         require(!destroyed, "Contract is destroyed");
-        ownerCheckpoint();
 
         enabled = true;
-    }
-
-    /// @dev Checks if the contract can be accessed
-    function contractCheckpoint() private view {
-        ownerCheckpoint();
-        require(!destroyed, "Contract is destroyed");
-        require(enabled, "Contract is disabled");
-    }
-
-    /// @dev Checks if the signer is the contract owner
-    function ownerCheckpoint() private view {
-        require(msg.sender == basin, "Must be contract owner");
     }
 
     // MARK: - Write Methods
@@ -128,10 +135,9 @@ contract BasinDataStore {
     /// @dev Creates a new standard. Public
     function createStandard(string memory _name, string memory _schema)
         public
+        _basin
         returns (Standard memory)
     {
-        contractCheckpoint();
-
         string memory encodedName = encoded(_name);
 
         bytes32 byteName = keccak256(bytes(encodedName));
@@ -165,13 +171,11 @@ contract BasinDataStore {
     /// @param _standard the Standard of the data
     /// @param _payload the data to be stored
     function storeData(
-        address payable _provider,
-        address payable _user,
+        address _provider,
+        address _user,
         uint256 _standard,
         string memory _payload
-    ) public payable {
-        contractCheckpoint();
-
+    ) public _basin {
         string memory json = encoded(_payload);
 
         Data memory fullPayload = Data(
@@ -187,8 +191,6 @@ contract BasinDataStore {
         console.log("provider: '%s'", _provider);
         console.log("standard: '%s'", _standard);
         console.log("payload: '%s'", _payload);
-
-        console.log("encoded: %s", json);
 
         data[_tokenIds.current()] = fullPayload;
 
@@ -210,25 +212,24 @@ contract BasinDataStore {
 
     /// @notice Fetches current standard token
     /// @dev Fetches current standard tokenId
-    function fetchCurrentStandardToken() public view returns (uint256) {
-        contractCheckpoint();
-
+    function fetchCurrentStandardToken() public view _basin returns (uint256) {
         return _standardIds.current();
     }
 
     /// @notice Fetches current token
     /// @dev Fetches current tokenId
-    function fetchCurrentToken() public view returns (uint256) {
-        contractCheckpoint();
-
+    function fetchCurrentToken() public view _basin returns (uint256) {
         return _tokenIds.current();
     }
 
     /// @notice Fetches the standard for a given id
     /// @dev Fetches the standard for a given id
-    function fetchStandard(uint256 _id) public view returns (Standard memory) {
-        contractCheckpoint();
-
+    function fetchStandard(uint256 _id)
+        public
+        view
+        _basin
+        returns (Standard memory)
+    {
         require(standardExists(_id), "Standard must exist");
 
         return rawStandard(standards[_id]);
@@ -236,9 +237,12 @@ contract BasinDataStore {
 
     /// @notice Fetches all standards for contract owner
     /// @dev Fetches all standards. Private to contract owner
-    function fetchAllStandards() public view returns (Standard[] memory) {
-        contractCheckpoint();
-
+    function fetchAllStandards()
+        public
+        view
+        _basin
+        returns (Standard[] memory)
+    {
         uint256 length = _standardIds.current();
         Standard[] memory result = new Standard[](length);
 
@@ -251,9 +255,7 @@ contract BasinDataStore {
 
     /// @notice Fetches all data for contract owner
     /// @dev Fetches all data. Private to contract owner
-    function fetchAllData() public view returns (Data[] memory) {
-        contractCheckpoint();
-
+    function fetchAllData() public view _basin returns (Data[] memory) {
         uint256 length = _tokenIds.current();
         Data[] memory result = new Data[](length);
 
@@ -266,9 +268,7 @@ contract BasinDataStore {
 
     /// @notice Fetches all user data for current address
     /// @dev Fetches all user data. Private to sender
-    function fetchUserData() public view returns (Data[] memory) {
-        contractCheckpoint();
-
+    function fetchUserData() public view _basin returns (Data[] memory) {
         console.log("Fetching user data for", msg.sender);
 
         uint256[] memory temp = userData[msg.sender];
@@ -284,9 +284,7 @@ contract BasinDataStore {
 
     /// @notice Fetches all provider data for current address
     /// @dev Fetches all provider data. Private to sender
-    function fetchProviderData() public view returns (Data[] memory) {
-        contractCheckpoint();
-
+    function fetchProviderData() public view _basin returns (Data[] memory) {
         console.log("Fetching provider data for", msg.sender);
 
         uint256[] memory temp = providerData[msg.sender];
@@ -305,10 +303,9 @@ contract BasinDataStore {
     function fetchDataForToken(uint256 _token)
         public
         view
+        _basin
         returns (Data memory)
     {
-        contractCheckpoint();
-
         console.log("Fetching data for", _token);
 
         require(_token < _tokenIds.current(), "Invalid token");
@@ -323,10 +320,9 @@ contract BasinDataStore {
     function fetchDataForUser(address _user)
         public
         view
+        _basin
         returns (Data[] memory)
     {
-        contractCheckpoint();
-
         console.log("Fetching user data for", _user);
 
         uint256[] memory temp = userData[_user];
@@ -345,10 +341,9 @@ contract BasinDataStore {
     function fetchDataForProvider(address _provider)
         public
         view
+        _basin
         returns (Data[] memory)
     {
-        contractCheckpoint();
-
         console.log("Fetching provider data for", _provider);
 
         uint256[] memory temp = providerData[_provider];
@@ -367,10 +362,9 @@ contract BasinDataStore {
     function fetchDataForStandard(uint256 _standard)
         public
         view
+        _basin
         returns (Data[] memory)
     {
-        contractCheckpoint();
-
         console.log("Fetching standard data for", _standard);
 
         uint256[] memory temp = standardData[_standard];
@@ -389,10 +383,9 @@ contract BasinDataStore {
     function fetchDataForUserInStandard(address _user, uint256 _standard)
         public
         view
+        _basin
         returns (Data[] memory)
     {
-        contractCheckpoint();
-
         console.log("Fetching standard user data for", _user);
 
         uint256[] memory temp = userStandardData[_user][_standard];
@@ -411,9 +404,7 @@ contract BasinDataStore {
     function fetchDataForProviderInStandard(
         address _provider,
         uint256 _standard
-    ) public view returns (Data[] memory) {
-        contractCheckpoint();
-
+    ) public view _basin returns (Data[] memory) {
         console.log("Fetching standard provider data for", _provider);
 
         uint256[] memory temp = providerStandardData[_provider][_standard];
@@ -451,7 +442,7 @@ contract BasinDataStore {
     function standardId(bytes32 _name) public view returns (uint256) {
         for (uint256 i = 0; i < _standardIds.current(); i += 1) {
             bytes32 byteName = keccak256(bytes(standards[i].name));
-            if (byteName == byteName) {
+            if (_name == byteName) {
                 return i;
             }
         }
