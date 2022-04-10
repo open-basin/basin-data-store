@@ -42,6 +42,12 @@ contract DataStore {
     mapping(address => mapping(uint256 => uint256))
         private _ownerStandardBalances;
 
+    // New data event
+    event NewData(Data data);
+
+    // New Standard event
+    event NewStandard(Standard standard);
+
     // Data structure
     struct Data {
         uint256 token;
@@ -149,6 +155,66 @@ contract DataStore {
         _ownerBalances[msg.sender]--;
     }
 
+    // MARK: - Public Write Methods
+
+     /// @notice Stores data in the on chain data structures
+    function storeData(
+        address owner,
+        uint256 standard,
+        string memory payload
+    ) public _onlyOwner {
+        string memory obj = encoded(payload);
+
+        Data memory data = Data(
+            _tokenIds.current(),
+            owner,
+            standard,
+            block.timestamp,
+            obj
+        );
+
+        console.log("owner: '%s'", owner);
+        console.log("standard: '%s'", standard);
+        console.log("payload: '%s'", payload);
+
+        _mintData(data);
+
+        _tokenIds.increment();
+
+        console.log("Data stored on chain at index:", _tokenIds.current());
+
+        emit NewData(rawData(data));
+    }
+
+    /// @dev Creates a new standard. Public
+    function createStandard(string memory name, string memory schema)
+        public
+        _onlyOwner
+    {
+        string memory encodedName = encoded(name);
+
+        bytes32 byteName = keccak256(bytes(encodedName));
+
+        require(!standardNameExists(byteName), "Standard name already exists");
+
+        string memory encodedSchema = encoded(schema);
+
+        Standard memory standard = Standard(
+            _standardIds.current(),
+            encodedName,
+            encodedSchema,
+            true
+        );
+
+        _mintStandard(standard);
+
+        _standardIds.increment();
+
+        console.log("Created new standard: %s", name);
+
+        emit NewStandard(rawStandard(standard));
+    }
+
     // MARK: - Fetch methods
 
     function dataForOwner(address owner) public view returns (Data[] memory) {
@@ -228,6 +294,18 @@ contract DataStore {
 
     function _standardExists(uint256 standardId) private view returns (bool) {
         return standardId < _standardIds.current();
+    }
+
+    /// @dev Checks if Standard name exists. Private
+    function standardNameExists(bytes32 name) private view returns (bool) {
+        for (uint256 i = 0; i < _standardIds.current(); i += 1) {
+            bytes32 byteName = keccak256(bytes(_standards[i].name));
+            if (name == byteName) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     function _isOwner(address owner, uint256 token)
