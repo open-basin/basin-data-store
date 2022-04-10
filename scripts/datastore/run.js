@@ -25,6 +25,18 @@ const main = async () => {
 
     let ownerData1 = await contract.dataForOwner(owner.address);
     console.log("Owner Data 1:", ownerData1);
+
+    let randData1 = await contract.dataForOwner(randomPerson.address);
+    console.log("Random Data 1:", randData1);
+
+    let transfer = await contract.transferData(0, randomPerson.address);
+    await transfer.wait();
+
+    let ownerData2 = await contract.dataForOwner(owner.address);
+    console.log("Owner Data 2:", ownerData2);
+
+    let randData2 = await contract.dataForOwner(randomPerson.address);
+    console.log("Random Data 2:", randData2);
 };
 
 const runMain = async () => {

@@ -47,6 +47,9 @@ contract DataStore {
     // New Standard event
     event NewStandard(Standard standard);
 
+    // New data transfer event
+    event NewTransfer(Data data);
+
     // Data structure
     struct Data {
         uint256 token;
@@ -138,17 +141,17 @@ contract DataStore {
 
     // MARK: - Transfer methods
 
-    function _transferData(address to, Data memory data) private {
-        require(_tokenExists(data.token), "Data does not exists.");
+    function _transferData(uint256 token, address to) private {
+        require(_tokenExists(token), "Data does not exists.");
         require(_validOwner(msg.sender), "Owner address is invalid.");
-        require(_isOwner(msg.sender, data.token), "Owner is invalid.");
+        require(_isOwner(msg.sender, token), "Owner is invalid.");
         require(_validOwner(to), "Destination address is invalid.");
 
         // TODO - Sign transaction via Basin
         // require(basin.sign(), 'Failed to sign')
 
-        _data[data.token].owner = to;
-        _dataOwners[data.token] = to;
+        _data[token].owner = to;
+        _dataOwners[token] = to;
 
         _ownerBalances[to]++;
         _ownerBalances[msg.sender]--;
@@ -212,6 +215,19 @@ contract DataStore {
         console.log("Created new standard: %s", name);
 
         emit NewStandard(rawStandard(standard));
+    }
+
+    /// @dev Transfers data between owners
+    function transferData(
+        uint256 token,
+        address to
+    ) public _onlyOwner {
+
+        _transferData(token, to);
+
+        Data memory data = _data[token];
+
+        emit NewTransfer(rawData(data));
     }
 
     // MARK: - Fetch methods
