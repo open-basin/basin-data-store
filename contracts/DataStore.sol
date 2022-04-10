@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-import 'hardhat/console.sol';
+import "hardhat/console.sol";
 
-import {Counters} from './libraries/Counters.sol';
-import {Base64} from './libraries/Base64.sol';
-import {Validator} from './libraries/Validator.sol';
+import {Counters} from "./libraries/Counters.sol";
+import {Base64} from "./libraries/Base64.sol";
+import {Validator} from "./libraries/Validator.sol";
 
 contract DataStore {
     using Counters for Counters.Counter;
@@ -39,7 +39,8 @@ contract DataStore {
     mapping(uint256 => uint256) private _standardBalances;
 
     // Mapping owner address to standards to token count
-    mapping(address => mapping(uint256 => uint256)) private _ownerStandardBalances;
+    mapping(address => mapping(uint256 => uint256))
+        private _ownerStandardBalances;
 
     // Data structure
     struct Data {
@@ -62,17 +63,17 @@ contract DataStore {
 
     // Constrcutor
     constructor() payable {
-        console.log('DataStore contract constructed by %s', msg.sender);
+        console.log("DataStore contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
     }
 
     fallback() external {
-        console.log('Transaction failed.');
+        console.log("Transaction failed.");
     }
 
     /// @dev Checks if the signer is the contract owner
     modifier _onlyOwner() {
-        require(msg.sender == _contractOwner, 'Must be contract owner.');
+        require(msg.sender == _contractOwner, "Must be contract owner.");
         _;
     }
 
@@ -85,7 +86,7 @@ contract DataStore {
 
     /// @dev Mints data to the contract
     function _mintData(Data memory data) private {
-        require(_isValidData(data), 'Data is invalid.');
+        require(_isValidData(data), "Data is invalid.");
 
         // TODO - Sign transaction via Basin
         // require(basin.sign(), 'Failed to sign')
@@ -103,7 +104,7 @@ contract DataStore {
 
     /// @dev Mints a standard to the contract
     function _mintStandard(Standard memory standard) private {
-        require(!_standardExists(standard.token), 'Standard already exists.');
+        require(!_standardExists(standard.token), "Standard already exists.");
 
         // TODO - Sign transaction via Basin
         // require(basin.sign(), 'Failed to sign')
@@ -113,9 +114,9 @@ contract DataStore {
 
     /// @dev Burns data from contract
     function _burnData(Data memory data) private {
-        require(_tokenExists(data.token), 'Data is invalid.');
-        require(_validOwner(msg.sender), 'Owner address is invalid.');
-        require(_isOwner(msg.sender, data.token), 'Owner is invalid.');
+        require(_tokenExists(data.token), "Data is invalid.");
+        require(_validOwner(msg.sender), "Owner address is invalid.");
+        require(_isOwner(msg.sender, data.token), "Owner is invalid.");
 
         // TODO - Sign transaction via Basin
         // require(basin.sign(), 'Failed to sign')
@@ -133,10 +134,10 @@ contract DataStore {
     // MARK: - Transfer methods
 
     function _transferData(address to, Data memory data) private {
-        require(_tokenExists(data.token), 'Data does not exists.');
-        require(_validOwner(msg.sender), 'Owner address is invalid.');
-        require(_isOwner(msg.sender, data.token), 'Owner is invalid.');
-        require(_validOwner(to), 'Destination address is invalid.');
+        require(_tokenExists(data.token), "Data does not exists.");
+        require(_validOwner(msg.sender), "Owner address is invalid.");
+        require(_isOwner(msg.sender, data.token), "Owner is invalid.");
+        require(_validOwner(to), "Destination address is invalid.");
 
         // TODO - Sign transaction via Basin
         // require(basin.sign(), 'Failed to sign')
@@ -151,7 +152,7 @@ contract DataStore {
     // MARK: - Fetch methods
 
     function dataForOwner(address owner) public view returns (Data[] memory) {
-        require(_validOwner(owner), 'Owner is not valid.');
+        require(_validOwner(owner), "Owner is not valid.");
 
         uint256 balance = _ownerBalances[owner];
         Data[] memory result = new Data[](balance);
@@ -167,8 +168,12 @@ contract DataStore {
         return result;
     }
 
-    function dataForStandard(uint256 standard) public view returns (Data[] memory) {
-        require(_standardExists(standard), 'Standard does not exist.');
+    function dataForStandard(uint256 standard)
+        public
+        view
+        returns (Data[] memory)
+    {
+        require(_standardExists(standard), "Standard does not exist.");
 
         uint256 balance = _standardBalances[standard];
         Data[] memory result = new Data[](balance);
@@ -184,9 +189,13 @@ contract DataStore {
         return result;
     }
 
-    function dataForOwnerInStandard(address owner, uint256 standard) public view returns (Data[] memory) {
-        require(_validOwner(owner), 'Owner is not valid.');
-        require(_standardExists(standard), 'Standard does not exist.');
+    function dataForOwnerInStandard(address owner, uint256 standard)
+        public
+        view
+        returns (Data[] memory)
+    {
+        require(_validOwner(owner), "Owner is not valid.");
+        require(_standardExists(standard), "Standard does not exist.");
 
         uint256 balance = _ownerStandardBalances[owner][standard];
         Data[] memory result = new Data[](balance);
@@ -221,7 +230,11 @@ contract DataStore {
         return standardId < _standardIds.current();
     }
 
-    function _isOwner(address owner, uint256 token) private view returns (bool) {
+    function _isOwner(address owner, uint256 token)
+        private
+        view
+        returns (bool)
+    {
         return owner == _dataOwners[token];
     }
 
