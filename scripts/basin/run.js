@@ -25,9 +25,6 @@ const main = async () => {
 
     let providerData1 = await contract.fetchProviderData();
     console.log("Provider Data 1:", providerData1);
-
-    let calls =  await contract.fetchCalls();
-    console.log("calls:", calls);
 };
 
 const runMain = async () => {

@@ -6,7 +6,6 @@ import "hardhat/console.sol";
 
 import {Counters} from "./libraries/Counters.sol";
 import {Base64} from "./libraries/Base64.sol";
-import {Validator} from "./libraries/Validator.sol";
 
 contract DataStore {
     using Counters for Counters.Counter;
@@ -157,7 +156,7 @@ contract DataStore {
 
     // MARK: - Public Write Methods
 
-     /// @notice Stores data in the on chain data structures
+    /// @dev Stores data in the on chain data structures
     function storeData(
         address owner,
         uint256 standard,
@@ -179,9 +178,9 @@ contract DataStore {
 
         _mintData(data);
 
-        _tokenIds.increment();
-
         console.log("Data stored on chain at index:", _tokenIds.current());
+
+        _tokenIds.increment();
 
         emit NewData(rawData(data));
     }
@@ -272,6 +271,17 @@ contract DataStore {
                 result[counter] = rawData(_data[i]);
                 counter++;
             }
+        }
+
+        return result;
+    }
+
+    function allStandards() public view returns (Standard[] memory) {
+        uint256 length = _standardIds.current();
+        Standard[] memory result = new Standard[](length);
+
+        for (uint256 i = 0; i < length; i += 1) {
+            result[i] = rawStandard(_standards[i]);
         }
 
         return result;

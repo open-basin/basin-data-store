@@ -8,7 +8,7 @@ import {Counters} from "./libraries/Counters.sol";
 import {Base64} from "./libraries/Base64.sol";
 
 // Basin Contract 0
-contract Basin {
+contract BasinDataStore {
     
     // MARK: - Contract Properties
 
