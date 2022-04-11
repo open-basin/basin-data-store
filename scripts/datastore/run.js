@@ -6,8 +6,6 @@ const main = async () => {
     const contract = await contractFactory.deploy();
     await contract.deployed();
 
-    let randAddress = randomPerson.address;
-
     console.log("Contract deployed to:", contract.address);
     console.log("Contract deployed by:", owner.address);
 

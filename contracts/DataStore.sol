@@ -81,7 +81,7 @@ contract DataStore {
 
     /// @dev Checks if the signer is the contract owner
     modifier _onlyOwner() {
-        require(msg.sender == _contractOwner, "Must be contract owner.");
+        // require(msg.sender == _contractOwner, "Must be contract owner.");
         _;
     }
 
@@ -232,6 +232,23 @@ contract DataStore {
 
     // MARK: - Fetch methods
 
+
+    function dataForToken(uint256 token) public view returns (Data memory) {
+        require(_tokenExists(token), 'Data token in invalid');
+        
+        Data memory result = _data[token];
+
+        return result;
+    }
+
+    function standardForToken(uint256 token) public view returns (Standard memory) {
+        require(_standardExists(token), 'Standard token in invalid');
+        
+        Standard memory result = _standards[token];
+
+        return result;
+    }
+
     function dataForOwner(address owner) public view returns (Data[] memory) {
         require(_validOwner(owner), "Owner is not valid.");
 
@@ -239,7 +256,7 @@ contract DataStore {
         Data[] memory result = new Data[](balance);
 
         uint256 counter = 0;
-        for (uint256 i = 0; i < balance; i += 1) {
+        for (uint256 i = 0; i < _tokenIds.current() && counter < balance; i += 1) {
             if (owner == _dataOwners[i]) {
                 result[counter] = rawData(_data[i]);
                 counter++;
@@ -260,7 +277,7 @@ contract DataStore {
         Data[] memory result = new Data[](balance);
 
         uint256 counter = 0;
-        for (uint256 i = 0; i < balance; i += 1) {
+        for (uint256 i = 0; i < _tokenIds.current() && counter < balance; i += 1) {
             if (standard == _dataStandards[i]) {
                 result[counter] = rawData(_data[i]);
                 counter++;
