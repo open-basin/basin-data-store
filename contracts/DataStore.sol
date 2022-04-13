@@ -167,7 +167,7 @@ contract DataStore {
         address owner,
         uint256 standard,
         string memory payload
-    ) public _onlyOwner {
+    ) public _onlyOwner returns (Data memory) {
         string memory obj = encoded(payload);
 
         Data memory data = Data(
@@ -184,19 +184,20 @@ contract DataStore {
 
         _mintData(data);
 
-        console.log("Data stored on chain at index:", _tokenIds.current());
+        console.log("data stored on chain at index:", _tokenIds.current());
 
         _tokenIds.increment();
 
         emit NewData(rawData(data));
 
-        return;
+        return rawData(data);
     }
 
     /// @dev Creates a new standard. Public
     function createStandard(string memory name, string memory schema)
         public
         _onlyOwner
+        returns (Standard memory)
     {
         string memory encodedName = encoded(name);
 
@@ -217,11 +218,11 @@ contract DataStore {
 
         _standardIds.increment();
 
-        console.log("Created new standard: %s", name);
+        console.log("created new standard: %s", name);
 
         emit NewStandard(rawStandard(standard));
 
-        return;
+        return rawStandard(standard);
     }
 
     /// @dev Transfers data between owners
@@ -231,6 +232,8 @@ contract DataStore {
         Data memory data = _data[token];
 
         emit NewTransfer(rawData(data));
+
+        console.log("transfered data: %s", token);
 
         return;
     }
@@ -242,6 +245,8 @@ contract DataStore {
         Data memory data = _data[token];
 
         _burnData(data);
+
+        console.log("burned data: %s", token);
 
         emit NewBurn(data.token);
 

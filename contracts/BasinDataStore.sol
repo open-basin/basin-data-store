@@ -201,7 +201,7 @@ contract BasinDataStore {
         userStandardData[_user][_standard].push(_tokenIds.current());
         providerStandardData[_provider][_standard].push(_tokenIds.current());
 
-        console.log("Data stored on chain at index:", _tokenIds.current());
+        console.log("data stored on chain at index:", _tokenIds.current());
 
         _tokenIds.increment();
 
