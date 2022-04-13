@@ -260,7 +260,7 @@ contract DataStore {
 
         Data memory result = _data[token];
 
-        return result;
+        return rawData(result);
     }
 
     function standardForToken(uint256 token)
@@ -272,7 +272,7 @@ contract DataStore {
 
         Standard memory result = _standards[token];
 
-        return result;
+        return rawStandard(result);
     }
 
     function dataForOwner(address owner) public view returns (Data[] memory) {
