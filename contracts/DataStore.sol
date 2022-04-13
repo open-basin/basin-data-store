@@ -50,6 +50,9 @@ contract DataStore {
     // New data transfer event
     event NewTransfer(Data data);
 
+    // New data burn event
+    event NewBurn(uint256 token);
+
     // Data structure
     struct Data {
         uint256 token;
@@ -186,6 +189,8 @@ contract DataStore {
         _tokenIds.increment();
 
         emit NewData(rawData(data));
+
+        return;
     }
 
     /// @dev Creates a new standard. Public
@@ -215,35 +220,51 @@ contract DataStore {
         console.log("Created new standard: %s", name);
 
         emit NewStandard(rawStandard(standard));
+
+        return;
     }
 
     /// @dev Transfers data between owners
-    function transferData(
-        uint256 token,
-        address to
-    ) public _onlyOwner {
-
+    function transferData(uint256 token, address to) public _onlyOwner {
         _transferData(token, to);
 
         Data memory data = _data[token];
 
         emit NewTransfer(rawData(data));
+
+        return;
+    }
+
+    /// @dev Burns data
+    function burnData(uint256 token) public _onlyOwner {
+        require(_tokenExists(token), "Token is invalid");
+
+        Data memory data = _data[token];
+
+        _burnData(data);
+
+        emit NewBurn(data.token);
+
+        return;
     }
 
     // MARK: - Fetch methods
 
-
     function dataForToken(uint256 token) public view returns (Data memory) {
-        require(_tokenExists(token), 'Data token in invalid');
-        
+        require(_tokenExists(token), "Data token in invalid");
+
         Data memory result = _data[token];
 
         return result;
     }
 
-    function standardForToken(uint256 token) public view returns (Standard memory) {
-        require(_standardExists(token), 'Standard token in invalid');
-        
+    function standardForToken(uint256 token)
+        public
+        view
+        returns (Standard memory)
+    {
+        require(_standardExists(token), "Standard token in invalid");
+
         Standard memory result = _standards[token];
 
         return result;
@@ -256,7 +277,11 @@ contract DataStore {
         Data[] memory result = new Data[](balance);
 
         uint256 counter = 0;
-        for (uint256 i = 0; i < _tokenIds.current() && counter < balance; i += 1) {
+        for (
+            uint256 i = 0;
+            i < _tokenIds.current() && counter < balance;
+            i += 1
+        ) {
             if (owner == _dataOwners[i]) {
                 result[counter] = rawData(_data[i]);
                 counter++;
@@ -277,7 +302,11 @@ contract DataStore {
         Data[] memory result = new Data[](balance);
 
         uint256 counter = 0;
-        for (uint256 i = 0; i < _tokenIds.current() && counter < balance; i += 1) {
+        for (
+            uint256 i = 0;
+            i < _tokenIds.current() && counter < balance;
+            i += 1
+        ) {
             if (standard == _dataStandards[i]) {
                 result[counter] = rawData(_data[i]);
                 counter++;
