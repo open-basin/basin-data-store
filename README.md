@@ -15,6 +15,6 @@ npx hardhat compile
 npx hardhat clean
 npx hardhat test
 npx hardhat node
-node scripts/run.js
+node scripts/datastore/run.js
 npx hardhat help
 ```
