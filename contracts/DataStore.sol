@@ -13,11 +13,23 @@ contract DataStore {
     // Contract owner
     address payable private _contractOwner;
 
+    // Token Ids for pending data
+    Counters.Counter private _pendingDataIds;
+
+    // Token Ids for pending standards
+    Counters.Counter private _pendingStandardIds;
+
     // Token Ids for data
     Counters.Counter private _tokenIds;
 
     // Token Ids for standards
     Counters.Counter private _standardIds;
+
+    // Pending Data map
+    mapping(uint256 => BasicData) private _pendingData;
+
+    // Pending Standards map
+    mapping(uint256 => BasicStandard) private _pendingStandards;
 
     // Data map
     mapping(uint256 => Data) private _data;
@@ -52,6 +64,25 @@ contract DataStore {
 
     // New data burn event
     event NewBurn(uint256 token);
+
+    // New pending data event
+    event NewPendingStandard(BasicStandard standard);
+
+    // New pending data event
+    event NewPendingData(BasicData data);
+
+    // Basic Standard structure
+    struct BasicStandard {
+        string name;
+        string schema;
+    }
+
+    // Basin Data structure
+    struct BasicData {
+        address owner;
+        uint256 standard;
+        string payload;
+    }
 
     // Data structure
     struct Data {
@@ -162,29 +193,56 @@ contract DataStore {
 
     // MARK: - Public Write Methods
 
-    /// @dev Stores data in the on chain data structures
-    function storeData(
+    function postData(
         address owner,
         uint256 standard,
         string memory payload
-    ) public _onlyOwner returns (Data memory) {
-        string memory obj = encoded(payload);
+    ) public {
+        BasicData memory data = BasicData(owner, standard, encoded(payload));
 
-        Data memory data = Data(
-            _tokenIds.current(),
-            owner,
-            standard,
-            block.timestamp,
-            obj
+        _pendingData[_pendingDataIds.current()] = data;
+
+        _pendingDataIds.increment();
+
+        emit NewPendingData(data);
+
+        // return data; // TODO - Return Data
+    }
+
+    function postStandard(string memory name, string memory schema) public {
+        string memory encodedName = encoded(name);
+
+        bytes32 byteName = keccak256(bytes(encodedName));
+
+        require(!standardNameExists(byteName), "Standard name already exists");
+
+        BasicStandard memory standard = BasicStandard(
+            encoded(name),
+            encoded(schema)
         );
 
-        console.log("owner: '%s'", owner);
-        console.log("standard: '%s'", standard);
-        console.log("payload: '%s'", payload);
+        _pendingStandards[_pendingStandardIds.current()] = standard;
+
+        _pendingStandardIds.increment();
+
+        emit NewPendingStandard(standard);
+
+        // return standard; // TODO - Return Standard
+    }
+
+    function storeData(BasicData memory basicData)
+        private
+        returns (Data memory)
+    {
+        Data memory data = Data(
+            _tokenIds.current(),
+            basicData.owner,
+            basicData.standard,
+            block.timestamp,
+            basicData.payload
+        );
 
         _mintData(data);
-
-        console.log("data stored on chain at index:", _tokenIds.current());
 
         _tokenIds.increment();
 
@@ -193,32 +251,20 @@ contract DataStore {
         return rawData(data);
     }
 
-    /// @dev Creates a new standard. Public
-    function createStandard(string memory name, string memory schema)
-        public
-        _onlyOwner
+    function storeStandard(BasicStandard memory basicStandard)
+        private
         returns (Standard memory)
     {
-        string memory encodedName = encoded(name);
-
-        bytes32 byteName = keccak256(bytes(encodedName));
-
-        require(!standardNameExists(byteName), "Standard name already exists");
-
-        string memory encodedSchema = encoded(schema);
-
         Standard memory standard = Standard(
             _standardIds.current(),
-            encodedName,
-            encodedSchema,
+            basicStandard.name,
+            basicStandard.schema,
             true
         );
 
         _mintStandard(standard);
 
         _standardIds.increment();
-
-        console.log("created new standard: %s", name);
 
         emit NewStandard(rawStandard(standard));
 
@@ -253,7 +299,58 @@ contract DataStore {
         return;
     }
 
+    // MARK: - Chainlink integration
+
+    // TODO - Add Chainlink integration
+
+    // address private oracle;
+    // bytes32 private jobId;
+    // uint256 private fee;
+
+    // mapping(bytes32 => Data) private _pendingData;
+
+    // constructor() {
+    //     setPublicChainlinkToken();
+    //     oracle = 0xc57B33452b4F7BB189bB5AfaE9cc4aBa1f7a4FD8;
+    //     jobId = "d5270d1c311941d0b08bead21fea7747";
+    //     fee = 0.1 * 10 ** 18; // (Varies by network and job)
+    // }
+
+    // function _requestValidation(Data data) public view returns (bytes32 requestId) {
+    //     Chainlink.Request memory request = buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
+
+    //     request.add("post", "https://sign.openbasin.io/datastore/data");
+
+    //     _pendingData[requestId] = data;
+    //     return sendChainlinkRequestTo(oracle, request, fee);
+    // }
+
+    // function fulfill(bytes32 _requestId, bool _valid) public recordChainlinkFulfillment(_requestId) {
+    //     require(_valid, 'Validator denied transaction');
+    //     require(_pendingData[_requestId], 'Data is not pending');
+
+    //     _mintData(_pendingData[_requestId]);
+
+    //     delete _pendingData[_requestId];
+    // }
+
     // MARK: - Fetch methods
+
+    function pendingDataForId(uint256 token) public view returns (BasicData memory) {
+        require(token < _pendingDataIds.current(), "Data token is invalid");
+
+        BasicData memory result = _pendingData[token];
+
+        return rawBasicData(result);
+    }
+
+    function pendingStandardForId(uint256 token) public view returns (BasicStandard memory) {
+        require(token < _pendingStandardIds.current(), "Standard token is invalid");
+
+        BasicStandard memory result = _pendingStandards[token];
+
+        return rawBasicStandard(result);
+    }
 
     function dataForToken(uint256 token) public view returns (Data memory) {
         require(_tokenExists(token), "Data token in invalid");
@@ -394,6 +491,35 @@ contract DataStore {
     }
 
     // MARK: - Helpers
+
+    /// @dev Gets the raw standard
+    function rawBasicStandard(BasicStandard memory standard)
+        private
+        pure
+        returns (BasicStandard memory)
+    {
+        BasicStandard memory newStandard = BasicStandard(
+            decoded(standard.name),
+            decoded(standard.schema)
+        );
+
+        return newStandard;
+    }
+
+    /// @dev Gets the raw value
+    function rawBasicData(BasicData memory data)
+        private
+        pure
+        returns (BasicData memory)
+    {
+        BasicData memory newData = BasicData(
+            data.owner,
+            data.standard,
+            decoded(data.payload)
+        );
+
+        return newData;
+    }
 
     /// @dev Gets the raw standard
     function rawStandard(Standard memory standard)
