@@ -3,21 +3,17 @@
 pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
+import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 
 import {Counters} from "./libraries/Counters.sol";
 import {Base64} from "./libraries/Base64.sol";
 
-contract DataStore {
+contract DataStore is ChainlinkClient {
     using Counters for Counters.Counter;
+    using Chainlink for Chainlink.Request;
 
     // Contract owner
     address payable private _contractOwner;
-
-    // Token Ids for pending data
-    Counters.Counter private _pendingDataIds;
-
-    // Token Ids for pending standards
-    Counters.Counter private _pendingStandardIds;
 
     // Token Ids for data
     Counters.Counter private _tokenIds;
@@ -26,10 +22,10 @@ contract DataStore {
     Counters.Counter private _standardIds;
 
     // Pending Data map
-    mapping(uint256 => BasicData) private _pendingData;
+    mapping(bytes32 => BasicData) private _pendingData;
 
     // Pending Standards map
-    mapping(uint256 => BasicStandard) private _pendingStandards;
+    mapping(bytes32 => BasicStandard) private _pendingStandards;
 
     // Data map
     mapping(uint256 => Data) private _data;
@@ -75,6 +71,7 @@ contract DataStore {
     struct BasicStandard {
         string name;
         string schema;
+        bool exists;
     }
 
     // Basin Data structure
@@ -82,6 +79,7 @@ contract DataStore {
         address owner;
         uint256 standard;
         string payload;
+        bool exists;
     }
 
     // Data structure
@@ -198,11 +196,9 @@ contract DataStore {
         uint256 standard,
         string memory payload
     ) public {
-        BasicData memory data = BasicData(owner, standard, encoded(payload));
+        BasicData memory data = BasicData(owner, standard, encoded(payload), true);
 
-        _pendingData[_pendingDataIds.current()] = data;
-
-        _pendingDataIds.increment();
+        _requestDataValidation(data);
 
         emit NewPendingData(data);
 
@@ -218,12 +214,11 @@ contract DataStore {
 
         BasicStandard memory standard = BasicStandard(
             encoded(name),
-            encoded(schema)
+            encoded(schema),
+            true
         );
 
-        _pendingStandards[_pendingStandardIds.current()] = standard;
-
-        _pendingStandardIds.increment();
+        _requestStandardValidation(standard);
 
         emit NewPendingStandard(standard);
 
@@ -301,53 +296,56 @@ contract DataStore {
 
     // MARK: - Chainlink integration
 
-    // TODO - Add Chainlink integration
+    address private oracle;
+    bytes32 private jobId;
+    uint256 private fee;
 
-    // address private oracle;
-    // bytes32 private jobId;
-    // uint256 private fee;
+    function _requestDataValidation(BasicData memory data) private returns (bytes32) {
+        Chainlink.Request memory request = buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
 
-    // mapping(bytes32 => Data) private _pendingData;
+        request.add("get", "https://validate.rinkeby.openbasin.io/datastore/validate/data");
 
-    // constructor() {
-    //     setPublicChainlinkToken();
-    //     oracle = 0xc57B33452b4F7BB189bB5AfaE9cc4aBa1f7a4FD8;
-    //     jobId = "d5270d1c311941d0b08bead21fea7747";
-    //     fee = 0.1 * 10 ** 18; // (Varies by network and job)
-    // }
+        bytes32 requestId = sendChainlinkRequestTo(oracle, request, fee);
 
-    // function _requestValidation(Data data) public view returns (bytes32 requestId) {
-    //     Chainlink.Request memory request = buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
+        _pendingData[requestId] = data;
 
-    //     request.add("post", "https://sign.openbasin.io/datastore/data");
+        return requestId;
+    }
 
-    //     _pendingData[requestId] = data;
-    //     return sendChainlinkRequestTo(oracle, request, fee);
-    // }
+    function _requestStandardValidation(BasicStandard memory standard) private returns (bytes32) {
+        Chainlink.Request memory request = buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
 
-    // function fulfill(bytes32 _requestId, bool _valid) public recordChainlinkFulfillment(_requestId) {
-    //     require(_valid, 'Validator denied transaction');
-    //     require(_pendingData[_requestId], 'Data is not pending');
+        request.add("get", "https://validate.rinkeby.openbasin.io/datastore/validate/standard");
 
-    //     _mintData(_pendingData[_requestId]);
+        bytes32 requestId = sendChainlinkRequestTo(oracle, request, fee);
 
-    //     delete _pendingData[_requestId];
-    // }
+        _pendingStandards[requestId] = standard;
+
+        return requestId;
+    }
+
+    function fulfill(bytes32 _requestId, bool _valid) public recordChainlinkFulfillment(_requestId) {
+        require(_valid, 'Validator denied transaction');
+
+        // _mintData(_pendingData[_requestId]); TODO - Mint data
+
+        delete _pendingData[_requestId];
+    }
 
     // MARK: - Fetch methods
 
-    function pendingDataForId(uint256 token) public view returns (BasicData memory) {
-        require(token < _pendingDataIds.current(), "Data token is invalid");
+    function pendingDataForId(bytes32 id) public view returns (BasicData memory) {
+        require(_pendingData[id].exists, "Data token is invalid");
 
-        BasicData memory result = _pendingData[token];
+        BasicData memory result = _pendingData[id];
 
         return rawBasicData(result);
     }
 
-    function pendingStandardForId(uint256 token) public view returns (BasicStandard memory) {
-        require(token < _pendingStandardIds.current(), "Standard token is invalid");
+    function pendingStandardForId(bytes32 id) public view returns (BasicStandard memory) {
+        require(_pendingStandards[id].exists, "Standard token is invalid");
 
-        BasicStandard memory result = _pendingStandards[token];
+        BasicStandard memory result = _pendingStandards[id];
 
         return rawBasicStandard(result);
     }
@@ -500,7 +498,8 @@ contract DataStore {
     {
         BasicStandard memory newStandard = BasicStandard(
             decoded(standard.name),
-            decoded(standard.schema)
+            decoded(standard.schema),
+            standard.exists
         );
 
         return newStandard;
@@ -515,7 +514,8 @@ contract DataStore {
         BasicData memory newData = BasicData(
             data.owner,
             data.standard,
-            decoded(data.payload)
+            decoded(data.payload),
+            data.exists
         );
 
         return newData;
