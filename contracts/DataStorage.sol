@@ -7,7 +7,7 @@ import "hardhat/console.sol";
 import {Counters} from "./libraries/Counters.sol";
 import {Base64} from "./libraries/Base64.sol";
 
-contract DataStore {
+contract DataStorage {
 
     using Counters for Counters.Counter;
 
@@ -15,22 +15,13 @@ contract DataStore {
     address payable private _contractOwner;
 
     // Token Ids for data
-    Counters.Counter private _tokenIds;
-
-    // Token Ids for standards
-    Counters.Counter private _standardIds;
+    Counters.Counter private _tokenIds; 
 
     // Pending Data map
     mapping(bytes32 => BasicData) private _pendingData;
 
-    // Pending Standards map
-    mapping(bytes32 => BasicStandard) private _pendingStandards;
-
     // Data map
     mapping(uint256 => Data) private _data;
-
-    // Standards map
-    mapping(uint256 => Standard) private _standards;
 
     // Owners of data map
     mapping(uint256 => address) private _dataOwners;
@@ -45,14 +36,10 @@ contract DataStore {
     mapping(uint256 => uint256) private _standardBalances;
 
     // Mapping owner address to standards to token count
-    mapping(address => mapping(uint256 => uint256))
-        private _ownerStandardBalances;
+    mapping(address => mapping(uint256 => uint256)) private _ownerStandardBalances;
 
     // New data event
     event NewData(Data data);
-
-    // New Standard event
-    event NewStandard(Standard standard);
 
     // New data transfer event
     event NewTransfer(Data data);
@@ -61,17 +48,7 @@ contract DataStore {
     event NewBurn(uint256 token);
 
     // New pending data event
-    event NewPendingStandard(BasicStandard standard);
-
-    // New pending data event
     event NewPendingData(BasicData data);
-
-    // Basic Standard structure
-    struct BasicStandard {
-        string name;
-        string schema;
-        bool exists;
-    }
 
     // Basin Data structure
     struct BasicData {
@@ -88,13 +65,5 @@ contract DataStore {
         uint256 standard;
         uint256 timestamp;
         string payload;
-    }
-
-    // Standard structure
-    struct Standard {
-        uint256 token;
-        string name;
-        string schema;
-        bool exists;
     }
 }
