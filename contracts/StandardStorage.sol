@@ -7,7 +7,11 @@ import "hardhat/console.sol";
 import {Counters} from "./libraries/Counters.sol";
 import {Base64} from "./libraries/Base64.sol";
 
-contract StandardStorage {
+interface StandardStorageLayer {
+
+}
+
+contract StandardStorage is StandardStorageLayer {
 
     using Counters for Counters.Counter;
 

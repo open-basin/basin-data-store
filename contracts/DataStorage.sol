@@ -7,7 +7,11 @@ import "hardhat/console.sol";
 import {Counters} from "./libraries/Counters.sol";
 import {Base64} from "./libraries/Base64.sol";
 
-contract DataStorage {
+interface DataStorageLayer {
+
+}
+
+contract DataStorage is DataStorageLayer {
 
     using Counters for Counters.Counter;
 
