@@ -129,10 +129,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
 
         _pendingStandards[token] = standard;
 
-        request.add(
-            "get",
-            string(abi.encodePacked(_endpoint, Strings.toString(token)))
-        );
+        request.add("get", validatorEndpoint(token));
 
         return sendChainlinkRequestTo(_oracle, request, _fee);
     }
@@ -152,5 +149,18 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         delete _pendingStandards[_token];
 
         return;
+    }
+
+    // MARK: - Helpers
+
+    function validatorEndpoint(uint256 standardToken)
+        private
+        view
+        returns (string memory)
+    {
+        return
+            string(
+                abi.encodePacked(_endpoint, Strings.toString(standardToken))
+            );
     }
 }

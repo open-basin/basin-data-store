@@ -130,15 +130,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         _pendingData[token] = data;
 
         request.add(
-            "get",
-            string(
-                abi.encodePacked(
-                    _endpoint,
-                    Strings.toString(token),
-                    "&standard=",
-                    Strings.toString(data.standard)
-                )
-            )
+            "get", validatorEndpoint(token, data.standard)
         );
 
         return sendChainlinkRequestTo(_oracle, request, _fee);
@@ -157,5 +149,19 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         delete _pendingData[_token];
 
         return;
+    }
+
+    // MARK: - Helpers
+
+    function validatorEndpoint(uint256 dataToken, uint256 standardToken) private view returns (string memory) {
+        return string(
+                abi.encodePacked(
+                    _endpoint,
+                    "?data=",
+                    Strings.toString(dataToken),
+                    "&standard=",
+                    Strings.toString(standardToken)
+                )
+            );
     }
 }
