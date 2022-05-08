@@ -1,17 +1,18 @@
+# Notes
 .idea.md
 .general.md
 .notes.md
-general/notes.txt
-node_modules
+.roadmap.md
+
+# Source
 .env
+node_modules
 coverage
 coverage.json
 typechain
+logic.py
+.DS_Store
 
-#Hardhat files
+# Hardhat files
 cache
 artifacts
-
-logic.py
-
-.roadmap.md
