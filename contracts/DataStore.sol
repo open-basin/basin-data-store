@@ -3,8 +3,8 @@
 pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
-import {Counters} from "./libraries/Counters.sol";
 import {Base64} from "./libraries/Base64.sol";
 import {Models} from "./libraries/Models.sol";
 
