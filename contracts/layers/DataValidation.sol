@@ -26,12 +26,17 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     // Contract owner
     address payable private _contractOwner;
 
+    // Surface Contract Address
+    address private _surfaceAddress;
+
     // Data Storage Contract Address
     address private _dataStorageAddress;
 
+    // Chainlink configurations
     address private _oracle;
     bytes32 private _jobId;
     uint256 private _fee;
+    string private _endpoint;
 
     // Token Ids for pending data
     Counters.Counter private _tokenIds;
@@ -43,15 +48,24 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     event NewPendingData(Models.BasicData data);
 
     // Constrcutor
-    constructor() payable {
+    constructor(
+        address surfaceAddress,
+        address dataStorageAddress,
+        address oracle,
+        bytes32 jobId,
+        uint256 fee,
+        string memory endpoint
+    ) payable {
         console.log("DataValidation contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
 
-        // _dataStorageAddress = ; // TODO - Update to deployed address
+        _surfaceAddress = surfaceAddress;
+        _dataStorageAddress = dataStorageAddress;
 
-        // _oracle = ; // TODO - Update
-        // _jobId = ""; // TODO - Update
-        // _fee = 0.1 * 10 ** 18; // TODO - Updatepdate
+        _oracle = oracle;
+        _jobId = jobId;
+        _fee = fee;
+        _endpoint = endpoint;
     }
 
     fallback() external {
@@ -69,10 +83,30 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         _contractOwner = newOwner;
     }
 
+    /// @dev Checks if the signer is the contract's surface
+    modifier _onlySurface() {
+        require(msg.sender == _surfaceAddress, "Must be contract's surface");
+        _;
+    }
+
+    /// @dev Changes the surface contract address
+    function changeSurfaceAddress(address surfaceAddress) external _onlyOwner {
+        _surfaceAddress = surfaceAddress;
+    }
+
+    /// @dev Changes the data storage contract address
+    function changeDataStorageAddress(address dataStorageAddress)
+        external
+        _onlyOwner
+    {
+        _dataStorageAddress = dataStorageAddress;
+    }
+
     // MARK: - Public
 
     function validateAndMintData(Models.BasicData memory data)
         external
+        _onlySurface
         returns (bytes32)
     {
         return _requestDataValidation(data);
@@ -99,16 +133,12 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
             "get",
             string(
                 abi.encodePacked(
-                    "https://validate.rinkeby.openbasin.io/datastore/validate/data?data=",
+                    _endpoint,
                     Strings.toString(token),
                     "&standard=",
                     Strings.toString(data.standard)
                 )
             )
-        );
-        request.add(
-            "get",
-            "https://validate.rinkeby.openbasin.io/datastore/validate/data"
         );
 
         return sendChainlinkRequestTo(_oracle, request, _fee);
@@ -118,7 +148,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         bytes32 _requestId,
         bool _valid,
         uint256 _token
-    ) public recordChainlinkFulfillment(_requestId) {
+    ) external recordChainlinkFulfillment(_requestId) {
         require(_valid, "Validator denied transaction");
         require(_pendingData[_token].exists, "Request ID does not exist");
 

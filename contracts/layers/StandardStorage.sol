@@ -30,6 +30,15 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     // Contract owner
     address payable private _contractOwner;
 
+    // Surface Contract Address
+    address private _surfaceAddress;
+
+    // Standard Validation Contract Address
+    address private _standardValidationAddress;
+
+    // Standard Visibility Contract Address
+    address private _standardVisibilityAddress;
+
     // Token Ids for data
     Counters.Counter private _tokenIds;
 
@@ -40,9 +49,17 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     event NewStandard(Models.Standard standard);
 
     // Constrcutor
-    constructor() payable {
+    constructor(
+        address surfaceAddress,
+        address standardValidationAddress,
+        address standardVisibilityAddress
+    ) payable {
         console.log("StandardStorage contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
+
+        _surfaceAddress = surfaceAddress;
+        _standardValidationAddress = standardValidationAddress;
+        _standardVisibilityAddress = standardVisibilityAddress;
     }
 
     fallback() external {
@@ -60,9 +77,57 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         _contractOwner = newOwner;
     }
 
+    /// @dev Checks if the signer is the contract's surface
+    modifier _onlySurface() {
+        require(msg.sender == _surfaceAddress, "Must be contract's surface");
+        _;
+    }
+
+    /// @dev Checks if the signer is the contract's standard validator
+    modifier _onlyValidator() {
+        require(
+            msg.sender == _standardValidationAddress,
+            "Must be contract's validator"
+        );
+        _;
+    }
+
+    /// @dev Checks if the signer is the contract's standard visibility address
+    modifier _onlyVisibility() {
+        require(
+            msg.sender == _standardVisibilityAddress,
+            "Must be contract's visibility address"
+        );
+        _;
+    }
+
+    /// @dev Changes the surface contract address
+    function changeSurfaceAddress(address surfaceAddress) external _onlyOwner {
+        _surfaceAddress = surfaceAddress;
+    }
+
+    /// @dev Changes the standard validation contract address
+    function changeStandardValidationAddress(address standardValidationAddress)
+        external
+        _onlyOwner
+    {
+        _standardValidationAddress = standardValidationAddress;
+    }
+
+    /// @dev Changes the standard visibility contract address
+    function changeStandardVisibilityAddress(address standardVisibilityAddress)
+        external
+        _onlyOwner
+    {
+        _standardVisibilityAddress = standardVisibilityAddress;
+    }
+
     // MARK: - External
 
-    function mint(Models.BasicStandard memory basicStandard) external {
+    function mint(Models.BasicStandard memory basicStandard)
+        external
+        _onlyValidator
+    {
         Models.Standard memory standard = Models.Standard(
             _tokenIds.current(),
             basicStandard.name,
@@ -82,6 +147,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     function standardForToken(uint256 token)
         external
         view
+        _onlySurface
         returns (Models.Standard memory)
     {
         require(_standardExists(token), "Standard token in invalid");
@@ -91,7 +157,12 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         return Models.rawStandard(result);
     }
 
-    function allStandards() external view returns (Models.Standard[] memory) {
+    function allStandards()
+        external
+        view
+        _onlySurface
+        returns (Models.Standard[] memory)
+    {
         uint256 length = _tokenIds.current();
         Models.Standard[] memory result = new Models.Standard[](length);
 
@@ -117,7 +188,12 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         return standardId < _tokenIds.current();
     }
 
-    function standardExists(uint256 standardId) external view returns (bool) {
+    function standardExists(uint256 standardId)
+        external
+        view
+        _onlyVisibility
+        returns (bool)
+    {
         return standardId < _tokenIds.current();
     }
 }

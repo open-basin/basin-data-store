@@ -35,14 +35,19 @@ contract DataStore {
     // MARK: - Contract Constructor
 
     // Constrcutor
-    constructor() payable {
+    constructor(
+        address dataStorageAddress,
+        address standardStorageAddress,
+        address dataValidationAddress,
+        address standardValidationAddress
+    ) payable {
         console.log("DataStore contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
 
-        // _dataStorageAddress = ; // TODO - Update to deployed address
-        // _standardStorageAddress = ; // TODO - Update to deployed address
-        // _dataValidationAddress = ; // TODO - Update to deployed address
-        // _standardValidationAddress = ; // TODO - Update to deployed address
+        _dataStorageAddress = dataStorageAddress;
+        _standardStorageAddress = standardStorageAddress;
+        _dataValidationAddress = dataValidationAddress;
+        _standardValidationAddress = standardValidationAddress;
     }
 
     fallback() external {
@@ -58,6 +63,38 @@ contract DataStore {
     /// @dev Changes contract owner
     function changeOwner(address payable newOwner) external _onlyOwner {
         _contractOwner = newOwner;
+    }
+
+    /// @dev Changes the data storage contract address
+    function changeDataStorageAddress(address dataStorageAddress)
+        external
+        _onlyOwner
+    {
+        _dataStorageAddress = dataStorageAddress;
+    }
+
+    /// @dev Changes the standard storage contract address
+    function changeStandardStorageAddress(address standardStorageAddress)
+        external
+        _onlyOwner
+    {
+        _standardStorageAddress = standardStorageAddress;
+    }
+
+    /// @dev Changes the data validation contract address
+    function changeDataValidationAddress(address dataValidationAddress)
+        external
+        _onlyOwner
+    {
+        _dataValidationAddress = dataValidationAddress;
+    }
+
+    /// @dev Changes the standard validation contract address
+    function changeStandardValidationAddress(address standardValidationAddress)
+        external
+        _onlyOwner
+    {
+        _standardValidationAddress = standardValidationAddress;
     }
 
     // MARK: - External Storage Methods

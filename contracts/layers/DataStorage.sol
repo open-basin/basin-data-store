@@ -42,6 +42,12 @@ contract DataStorage is DataStorageLayer {
     using Models for Models.Data;
     using Models for Models.BasicData;
 
+    // Surface Contract Address
+    address private _surfaceAddress;
+
+    // Data Validation Contract Address
+    address private _dataValidationAddress;
+
     // Standard Visibiliy Contract Address
     address private _standardVisibilityAddress;
 
@@ -80,11 +86,17 @@ contract DataStorage is DataStorageLayer {
     event NewBurn(uint256 token);
 
     // Constrcutor
-    constructor() payable {
+    constructor(
+        address surfaceAddress,
+        address dataValidationAddress,
+        address standardVisibilityAddress
+    ) payable {
         console.log("DataStorage contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
 
-        // _standardVisibilityAddress = ; // TODO - Update to deployed address
+        _surfaceAddress = surfaceAddress;
+        _dataValidationAddress = dataValidationAddress;
+        _standardVisibilityAddress = standardVisibilityAddress;
     }
 
     fallback() external {
@@ -102,9 +114,45 @@ contract DataStorage is DataStorageLayer {
         _contractOwner = newOwner;
     }
 
+    /// @dev Checks if the signer is the contract's surface
+    modifier _onlySurface() {
+        require(msg.sender == _surfaceAddress, "Must be contract's surface");
+        _;
+    }
+
+    /// @dev Checks if the signer is the contract's data validator
+    modifier _onlyValidator() {
+        require(
+            msg.sender == _dataValidationAddress,
+            "Must be contract data validator"
+        );
+        _;
+    }
+
+    /// @dev Changes the surface contract address
+    function changeSurfaceAddress(address surfaceAddress) external _onlyOwner {
+        _surfaceAddress = surfaceAddress;
+    }
+
+    /// @dev Changes the data validation contract address
+    function changeDataValidationAddress(address dataValidationAddress)
+        external
+        _onlyOwner
+    {
+        _dataValidationAddress = dataValidationAddress;
+    }
+
+    /// @dev Changes the standard visibility contract address
+    function changeStandardVisibilityAddress(address standardVisibilityAddress)
+        external
+        _onlyOwner
+    {
+        _standardVisibilityAddress = standardVisibilityAddress;
+    }
+
     // MARK: - External
 
-    function mint(Models.BasicData memory basicData) external {
+    function mint(Models.BasicData memory basicData) external _onlyValidator {
         Models.Data memory data = Models.Data(
             _tokenIds.current(),
             basicData.owner,
@@ -122,7 +170,7 @@ contract DataStorage is DataStorageLayer {
         return;
     }
 
-    function burn(Models.Data memory data) external {
+    function burn(Models.Data memory data) external _onlySurface {
         _burnData(data);
 
         emit NewBurn(data.token);
@@ -130,7 +178,7 @@ contract DataStorage is DataStorageLayer {
         return;
     }
 
-    function transfer(uint256 token, address to) external {
+    function transfer(uint256 token, address to) external _onlySurface {
         _transferData(token, to);
 
         emit NewTransfer(_data[token]);
@@ -141,6 +189,7 @@ contract DataStorage is DataStorageLayer {
     function dataForToken(uint256 token)
         external
         view
+        _onlySurface
         returns (Models.Data memory)
     {
         require(_tokenExists(token), "Data token in invalid");
@@ -153,6 +202,7 @@ contract DataStorage is DataStorageLayer {
     function dataForOwner(address owner)
         external
         view
+        _onlySurface
         returns (Models.Data[] memory)
     {
         require(_validOwner(owner), "Owner is not valid.");
@@ -178,6 +228,7 @@ contract DataStorage is DataStorageLayer {
     function dataForStandard(uint256 standard)
         external
         view
+        _onlySurface
         returns (Models.Data[] memory)
     {
         require(_standardExists(standard), "Standard does not exist.");
@@ -203,6 +254,7 @@ contract DataStorage is DataStorageLayer {
     function dataForOwnerInStandard(address owner, uint256 standard)
         external
         view
+        _onlySurface
         returns (Models.Data[] memory)
     {
         require(_validOwner(owner), "Owner is not valid.");

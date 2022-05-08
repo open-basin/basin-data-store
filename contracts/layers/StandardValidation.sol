@@ -26,12 +26,17 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     // Contract owner
     address payable private _contractOwner;
 
+    // Surface Contract Address
+    address private _surfaceAddress;
+
     // Standard Storage Contract Address
     address private _standardStorageAddress;
 
+    // Chainlink configurations
     address private _oracle;
     bytes32 private _jobId;
     uint256 private _fee;
+    string private _endpoint;
 
     // Token Ids for pending standards
     Counters.Counter private _tokenIds;
@@ -43,15 +48,24 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     event NewPendingStandard(Models.BasicStandard standard);
 
     // Constrcutor
-    constructor() payable {
+    constructor(
+        address surfaceAddress,
+        address standardStorageAddress,
+        address oracle,
+        bytes32 jobId,
+        uint256 fee,
+        string memory endpoint
+    ) payable {
         console.log("DataValidation contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
 
-        // _standardStorageAddress = ; // TODO - Update to deployed address
+        _surfaceAddress = surfaceAddress;
+        _standardStorageAddress = standardStorageAddress;
 
-        // _oracle = ; // TODO - Update
-        // _jobId = ""; // TODO - Update
-        // _fee = 0.1 * 10 ** 18; // TODO - Update
+        _oracle = oracle;
+        _jobId = jobId;
+        _fee = fee;
+        _endpoint = endpoint;
     }
 
     fallback() external {
@@ -69,10 +83,30 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         _contractOwner = newOwner;
     }
 
+    /// @dev Checks if the signer is the contract's surface
+    modifier _onlySurface() {
+        require(msg.sender == _surfaceAddress, "Must be contract's surface");
+        _;
+    }
+
+    /// @dev Changes the surface contract address
+    function changeSurfaceAddress(address surfaceAddress) external _onlyOwner {
+        _surfaceAddress = surfaceAddress;
+    }
+
+    /// @dev Changes the standard storage contract address
+    function changeStandardStorageAddress(address standardStorageAddress)
+        external
+        _onlyOwner
+    {
+        _standardStorageAddress = standardStorageAddress;
+    }
+
     // MARK: - Public
 
     function validateAndMintStandard(Models.BasicStandard memory standard)
         external
+        _onlySurface
         returns (bytes32)
     {
         return _requestStandardValidation(standard);
@@ -97,12 +131,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
 
         request.add(
             "get",
-            string(
-                abi.encodePacked(
-                    "https://validate.rinkeby.openbasin.io/datastore/validate/standard?id=",
-                    Strings.toString(token)
-                )
-            )
+            string(abi.encodePacked(_endpoint, Strings.toString(token)))
         );
 
         return sendChainlinkRequestTo(_oracle, request, _fee);
@@ -112,7 +141,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         bytes32 _requestId,
         bool _valid,
         uint256 _token
-    ) public recordChainlinkFulfillment(_requestId) {
+    ) external recordChainlinkFulfillment(_requestId) {
         require(_valid, "Validator denied transaction");
         require(_pendingStandards[_token].exists, "Request ID does not exist");
 
