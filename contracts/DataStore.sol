@@ -38,6 +38,11 @@ contract DataStore {
     constructor() payable {
         console.log("DataStore contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
+
+        // _dataStorageAddress = ; // TODO - Update to deployed address
+        // _standardStorageAddress = ; // TODO - Update to deployed address
+        // _dataValidationAddress = ; // TODO - Update to deployed address
+        // _standardValidationAddress = ; // TODO - Update to deployed address
     }
 
     fallback() external {
@@ -74,16 +79,15 @@ contract DataStore {
         return;
     }
 
-    function storeStandard(string memory name, string memory schema)
-        external
-    {
+    function storeStandard(string memory name, string memory schema) external {
         Models.BasicStandard memory standard = Models.BasicStandard(
             Models.encoded(name),
             Models.encoded(schema),
             true
         );
 
-        StandardValidationLayer(_standardValidationAddress).validateAndMintStandard(standard);
+        StandardValidationLayer(_standardValidationAddress)
+            .validateAndMintStandard(standard);
 
         return;
     }

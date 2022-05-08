@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 import {Counters} from "../libraries/Counters.sol";
 import {Base64} from "../libraries/Base64.sol";
@@ -12,10 +13,13 @@ import {Models} from "../libraries/Models.sol";
 import {StandardStorageLayer} from "./StandardStorage.sol";
 
 interface StandardValidationLayer {
-    function validateAndMintStandard(Models.BasicStandard memory standard) external returns (bytes32);
+    function validateAndMintStandard(Models.BasicStandard memory standard)
+        external
+        returns (bytes32);
 }
 
 contract StandardValidation is StandardValidationLayer, ChainlinkClient {
+    using Counters for Counters.Counter;
     using Chainlink for Chainlink.Request;
     using Models for Models.BasicStandard;
 
@@ -25,12 +29,15 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     // Standard Storage Contract Address
     address private _standardStorageAddress;
 
-    address private oracle;
-    bytes32 private jobId;
-    uint256 private fee;
+    address private _oracle;
+    bytes32 private _jobId;
+    uint256 private _fee;
+
+    // Token Ids for pending standards
+    Counters.Counter private _tokenIds;
 
     // Pending Standards map
-    mapping(bytes32 => Models.BasicStandard) private _pendingStandards;
+    mapping(uint256 => Models.BasicStandard) private _pendingStandards;
 
     // New pending data event
     event NewPendingStandard(Models.BasicStandard standard);
@@ -39,6 +46,12 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     constructor() payable {
         console.log("DataValidation contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
+
+        // _standardStorageAddress = ; // TODO - Update to deployed address
+
+        // _oracle = ; // TODO - Update
+        // _jobId = ""; // TODO - Update
+        // _fee = 0.1 * 10 ** 18; // TODO - Update
     }
 
     fallback() external {
@@ -58,31 +71,56 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
 
     // MARK: - Public
 
-    function validateAndMintStandard(Models.BasicStandard memory standard) external returns (bytes32) {
+    function validateAndMintStandard(Models.BasicStandard memory standard)
+        external
+        returns (bytes32)
+    {
         return _requestStandardValidation(standard);
     }
 
     // MARK: - Chainlink integration
 
-    function _requestStandardValidation(Models.BasicStandard memory standard) private returns (bytes32) {
-        Chainlink.Request memory request = buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
+    function _requestStandardValidation(Models.BasicStandard memory standard)
+        private
+        returns (bytes32)
+    {
+        Chainlink.Request memory request = buildChainlinkRequest(
+            _jobId,
+            address(this),
+            this.fulfill.selector
+        );
 
-        request.add("get", "https://validate.rinkeby.openbasin.io/datastore/validate/standard");
+        uint256 token = _tokenIds.current();
+        _tokenIds.increment();
 
-        bytes32 requestId = sendChainlinkRequestTo(oracle, request, fee);
+        _pendingStandards[token] = standard;
 
-        _pendingStandards[requestId] = standard;
+        request.add(
+            "get",
+            string(
+                abi.encodePacked(
+                    "https://validate.rinkeby.openbasin.io/datastore/validate/standard?id=",
+                    Strings.toString(token)
+                )
+            )
+        );
 
-        return requestId;
+        return sendChainlinkRequestTo(_oracle, request, _fee);
     }
 
-    function fulfill(bytes32 _requestId, bool _valid) public recordChainlinkFulfillment(_requestId) {
-        require(_valid, 'Validator denied transaction');
-        require(_pendingStandards[_requestId].exists, 'Request ID does not exist');
+    function fulfill(
+        bytes32 _requestId,
+        bool _valid,
+        uint256 _token
+    ) public recordChainlinkFulfillment(_requestId) {
+        require(_valid, "Validator denied transaction");
+        require(_pendingStandards[_token].exists, "Request ID does not exist");
 
-        StandardStorageLayer(_standardStorageAddress).mint(_pendingStandards[_requestId]);
+        StandardStorageLayer(_standardStorageAddress).mint(
+            _pendingStandards[_token]
+        );
 
-        delete _pendingStandards[_requestId];
+        delete _pendingStandards[_token];
 
         return;
     }

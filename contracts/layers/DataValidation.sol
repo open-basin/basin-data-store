@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 import {Counters} from "../libraries/Counters.sol";
 import {Base64} from "../libraries/Base64.sol";
@@ -12,10 +13,13 @@ import {Models} from "../libraries/Models.sol";
 import {DataStorageLayer} from "./DataStorage.sol";
 
 interface DataValidationLayer {
-    function validateAndMintData(Models.BasicData memory data) external returns (bytes32);
+    function validateAndMintData(Models.BasicData memory data)
+        external
+        returns (bytes32);
 }
 
 contract DataValidation is DataValidationLayer, ChainlinkClient {
+    using Counters for Counters.Counter;
     using Chainlink for Chainlink.Request;
     using Models for Models.BasicData;
 
@@ -25,12 +29,15 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     // Data Storage Contract Address
     address private _dataStorageAddress;
 
-    address private oracle;
-    bytes32 private jobId;
-    uint256 private fee;
+    address private _oracle;
+    bytes32 private _jobId;
+    uint256 private _fee;
+
+    // Token Ids for pending data
+    Counters.Counter private _tokenIds;
 
     // Pending Data map
-    mapping(bytes32 => Models.BasicData) private _pendingData;
+    mapping(uint256 => Models.BasicData) private _pendingData;
 
     // New pending data event
     event NewPendingData(Models.BasicData data);
@@ -39,6 +46,12 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     constructor() payable {
         console.log("DataValidation contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
+
+        // _dataStorageAddress = ; // TODO - Update to deployed address
+
+        // _oracle = ; // TODO - Update
+        // _jobId = ""; // TODO - Update
+        // _fee = 0.1 * 10 ** 18; // TODO - Updatepdate
     }
 
     fallback() external {
@@ -58,31 +71,60 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
 
     // MARK: - Public
 
-    function validateAndMintData(Models.BasicData memory data) external returns (bytes32) {
+    function validateAndMintData(Models.BasicData memory data)
+        external
+        returns (bytes32)
+    {
         return _requestDataValidation(data);
     }
 
     // MARK: - Chainlink integration
 
-    function _requestDataValidation(Models.BasicData memory data) private returns (bytes32) {
-        Chainlink.Request memory request = buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
+    function _requestDataValidation(Models.BasicData memory data)
+        private
+        returns (bytes32)
+    {
+        Chainlink.Request memory request = buildChainlinkRequest(
+            _jobId,
+            address(this),
+            this.fulfill.selector
+        );
 
-        request.add("get", "https://validate.rinkeby.openbasin.io/datastore/validate/data");
+        uint256 token = _tokenIds.current();
+        _tokenIds.increment();
 
-        bytes32 requestId = sendChainlinkRequestTo(oracle, request, fee);
+        _pendingData[token] = data;
 
-        _pendingData[requestId] = data;
+        request.add(
+            "get",
+            string(
+                abi.encodePacked(
+                    "https://validate.rinkeby.openbasin.io/datastore/validate/data?data=",
+                    Strings.toString(token),
+                    "&standard=",
+                    Strings.toString(data.standard)
+                )
+            )
+        );
+        request.add(
+            "get",
+            "https://validate.rinkeby.openbasin.io/datastore/validate/data"
+        );
 
-        return requestId;
+        return sendChainlinkRequestTo(_oracle, request, _fee);
     }
 
-    function fulfill(bytes32 _requestId, bool _valid) public recordChainlinkFulfillment(_requestId) {
-        require(_valid, 'Validator denied transaction');
-        require(_pendingData[_requestId].exists, 'Request ID does not exist');
+    function fulfill(
+        bytes32 _requestId,
+        bool _valid,
+        uint256 _token
+    ) public recordChainlinkFulfillment(_requestId) {
+        require(_valid, "Validator denied transaction");
+        require(_pendingData[_token].exists, "Request ID does not exist");
 
-        DataStorageLayer(_dataStorageAddress).mint(_pendingData[_requestId]);
+        DataStorageLayer(_dataStorageAddress).mint(_pendingData[_token]);
 
-        delete _pendingData[_requestId];
+        delete _pendingData[_token];
 
         return;
     }

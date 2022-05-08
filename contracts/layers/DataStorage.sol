@@ -13,16 +13,28 @@ interface DataStorageLayer {
     function mint(Models.BasicData memory basicData) external;
 
     function burn(Models.Data memory data) external;
-    
+
     function transfer(uint256 token, address to) external;
-    
-    function dataForToken(uint256 token) external view returns (Models.Data memory);
 
-    function dataForOwner(address owner) external view returns (Models.Data[] memory);
+    function dataForToken(uint256 token)
+        external
+        view
+        returns (Models.Data memory);
 
-    function dataForStandard(uint256 standard) external view returns (Models.Data[] memory);
+    function dataForOwner(address owner)
+        external
+        view
+        returns (Models.Data[] memory);
 
-    function dataForOwnerInStandard(address owner, uint256 standard) external view returns (Models.Data[] memory);
+    function dataForStandard(uint256 standard)
+        external
+        view
+        returns (Models.Data[] memory);
+
+    function dataForOwnerInStandard(address owner, uint256 standard)
+        external
+        view
+        returns (Models.Data[] memory);
 }
 
 contract DataStorage is DataStorageLayer {
@@ -71,6 +83,8 @@ contract DataStorage is DataStorageLayer {
     constructor() payable {
         console.log("DataStorage contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
+
+        // _standardVisibilityAddress = ; // TODO - Update to deployed address
     }
 
     fallback() external {
@@ -124,7 +138,11 @@ contract DataStorage is DataStorageLayer {
         return;
     }
 
-    function dataForToken(uint256 token) external view returns (Models.Data memory) {
+    function dataForToken(uint256 token)
+        external
+        view
+        returns (Models.Data memory)
+    {
         require(_tokenExists(token), "Data token in invalid");
 
         Models.Data memory result = _data[token];
@@ -132,7 +150,11 @@ contract DataStorage is DataStorageLayer {
         return Models.rawData(result);
     }
 
-    function dataForOwner(address owner) external view returns (Models.Data[] memory) {
+    function dataForOwner(address owner)
+        external
+        view
+        returns (Models.Data[] memory)
+    {
         require(_validOwner(owner), "Owner is not valid.");
 
         uint256 balance = _ownerBalances[owner];
@@ -153,7 +175,11 @@ contract DataStorage is DataStorageLayer {
         return result;
     }
 
-    function dataForStandard(uint256 standard) external view returns (Models.Data[] memory) {
+    function dataForStandard(uint256 standard)
+        external
+        view
+        returns (Models.Data[] memory)
+    {
         require(_standardExists(standard), "Standard does not exist.");
 
         uint256 balance = _standardBalances[standard];
@@ -261,11 +287,18 @@ contract DataStorage is DataStorageLayer {
         return _dataOwners[tokenId] != address(0);
     }
 
-    function _isOwner(address owner, uint256 token) private view returns (bool) {
+    function _isOwner(address owner, uint256 token)
+        private
+        view
+        returns (bool)
+    {
         return owner == _dataOwners[token];
     }
 
     function _standardExists(uint256 standardId) private view returns (bool) {
-        return StandardVisibility(_standardVisibilityAddress).standardExists(standardId);
+        return
+            StandardVisibility(_standardVisibilityAddress).standardExists(
+                standardId
+            );
     }
 }

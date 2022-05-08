@@ -10,7 +10,10 @@ import {Models} from "../libraries/Models.sol";
 interface StandardStorageLayer {
     function mint(Models.BasicStandard memory basicStandard) external;
 
-    function standardForToken(uint256 token) external view returns (Models.Standard memory);
+    function standardForToken(uint256 token)
+        external
+        view
+        returns (Models.Standard memory);
 
     function allStandards() external view returns (Models.Standard[] memory);
 }
