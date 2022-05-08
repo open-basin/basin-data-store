@@ -156,6 +156,7 @@ contract DataStorage is DataStorageLayer {
         Models.Data memory data = Models.Data(
             _tokenIds.current(),
             basicData.owner,
+            basicData.provider,
             basicData.standard,
             block.timestamp,
             basicData.payload
@@ -289,6 +290,8 @@ contract DataStorage is DataStorageLayer {
         _ownerBalances[data.owner]++;
         _standardBalances[data.standard]++;
         _ownerStandardBalances[data.owner][data.standard]++;
+
+        // Pay bank and provider
     }
 
     /// @dev Burns data from contract

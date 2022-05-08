@@ -100,12 +100,13 @@ contract DataStore {
     // MARK: - External Storage Methods
 
     function storeData(
-        address owner,
+        address provider,
         uint256 standard,
         string memory payload
     ) external {
         Models.BasicData memory data = Models.BasicData(
-            owner,
+            msg.sender,
+            provider,
             standard,
             Models.encoded(payload),
             true

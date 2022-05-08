@@ -8,6 +8,7 @@ library Models {
     // Basin Data structure
     struct BasicData {
         address owner;
+        address provider;
         uint256 standard;
         string payload;
         bool exists;
@@ -17,6 +18,7 @@ library Models {
     struct Data {
         uint256 token;
         address owner;
+        address provider;
         uint256 standard;
         uint256 timestamp;
         string payload;
@@ -58,6 +60,7 @@ library Models {
         Data memory newData = Data(
             data.token,
             data.owner,
+            data.provider,
             data.standard,
             data.timestamp,
             decoded(data.payload)
@@ -89,6 +92,7 @@ library Models {
     {
         BasicData memory newData = BasicData(
             data.owner,
+            data.provider,
             data.standard,
             decoded(data.payload),
             data.exists
