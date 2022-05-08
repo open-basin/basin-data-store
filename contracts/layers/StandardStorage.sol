@@ -48,7 +48,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     // New Standard event
     event NewStandard(Models.Standard standard);
 
-    // Constrcutor
+    // Constructor
     constructor(
         address surfaceAddress,
         address standardValidationAddress,

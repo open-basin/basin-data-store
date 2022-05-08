@@ -47,7 +47,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     // New pending data event
     event NewPendingData(Models.BasicData data);
 
-    // Constrcutor
+    // Constructor
     constructor(
         address surfaceAddress,
         address dataStorageAddress,

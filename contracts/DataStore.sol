@@ -34,7 +34,7 @@ contract DataStore {
 
     // MARK: - Contract Constructor
 
-    // Constrcutor
+    // Constructor
     constructor(
         address dataStorageAddress,
         address standardStorageAddress,

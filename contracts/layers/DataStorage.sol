@@ -85,7 +85,7 @@ contract DataStorage is DataStorageLayer {
     // New data burn event
     event NewBurn(uint256 token);
 
-    // Constrcutor
+    // Constructor
     constructor(
         address surfaceAddress,
         address dataValidationAddress,

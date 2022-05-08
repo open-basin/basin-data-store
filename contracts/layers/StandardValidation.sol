@@ -47,7 +47,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     // New pending data event
     event NewPendingStandard(Models.BasicStandard standard);
 
-    // Constrcutor
+    // Constructor
     constructor(
         address surfaceAddress,
         address standardStorageAddress,
