@@ -106,6 +106,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
 
     function validateAndMintStandard(Models.BasicStandard memory standard)
         external
+        override
         _onlySurface
         returns (bytes32)
     {
@@ -160,7 +161,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     {
         return
             string(
-                abi.encodePacked(_endpoint, Strings.toString(standardToken))
+                abi.encodePacked(_endpoint, "?id=", Strings.toString(standardToken))
             );
     }
 }

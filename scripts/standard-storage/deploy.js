@@ -1,8 +1,9 @@
 const main = async () => {
     const contractFactory = await hre.ethers.getContractFactory('StandardStorage');
-    const contract = await contractFactory.deploy({
-        value: hre.ethers.utils.parseEther("0.001"),
-    });
+    const contract = await contractFactory.deploy(
+        
+        {value: hre.ethers.utils.parseEther("0.001")}
+    );
 
     await contract.deployed();
 

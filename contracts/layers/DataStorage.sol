@@ -152,7 +152,7 @@ contract DataStorage is DataStorageLayer {
 
     // MARK: - External
 
-    function mint(Models.BasicData memory basicData) external _onlyValidator {
+    function mint(Models.BasicData memory basicData) external override _onlyValidator {
         Models.Data memory data = Models.Data(
             _tokenIds.current(),
             basicData.owner,
@@ -171,7 +171,7 @@ contract DataStorage is DataStorageLayer {
         return;
     }
 
-    function burn(Models.Data memory data) external _onlySurface {
+    function burn(Models.Data memory data) external override _onlySurface {
         _burnData(data);
 
         emit NewBurn(data.token);
@@ -179,7 +179,7 @@ contract DataStorage is DataStorageLayer {
         return;
     }
 
-    function transfer(uint256 token, address to) external _onlySurface {
+    function transfer(uint256 token, address to) external override _onlySurface {
         _transferData(token, to);
 
         emit NewTransfer(_data[token]);
@@ -190,6 +190,7 @@ contract DataStorage is DataStorageLayer {
     function dataForToken(uint256 token)
         external
         view
+        override
         _onlySurface
         returns (Models.Data memory)
     {
@@ -203,6 +204,7 @@ contract DataStorage is DataStorageLayer {
     function dataForOwner(address owner)
         external
         view
+        override
         _onlySurface
         returns (Models.Data[] memory)
     {
@@ -229,6 +231,7 @@ contract DataStorage is DataStorageLayer {
     function dataForStandard(uint256 standard)
         external
         view
+        override
         _onlySurface
         returns (Models.Data[] memory)
     {
@@ -255,6 +258,7 @@ contract DataStorage is DataStorageLayer {
     function dataForOwnerInStandard(address owner, uint256 standard)
         external
         view
+        override
         _onlySurface
         returns (Models.Data[] memory)
     {

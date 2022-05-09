@@ -126,6 +126,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
 
     function mint(Models.BasicStandard memory basicStandard)
         external
+        override
         _onlyValidator
     {
         Models.Standard memory standard = Models.Standard(
@@ -147,6 +148,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     function standardForToken(uint256 token)
         external
         view
+        override
         _onlySurface
         returns (Models.Standard memory)
     {
@@ -160,6 +162,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     function allStandards()
         external
         view
+        override
         _onlySurface
         returns (Models.Standard[] memory)
     {
@@ -191,6 +194,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     function standardExists(uint256 standardId)
         external
         view
+        override
         _onlyVisibility
         returns (bool)
     {

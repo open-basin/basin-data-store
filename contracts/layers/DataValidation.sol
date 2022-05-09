@@ -106,6 +106,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
 
     function validateAndMintData(Models.BasicData memory data)
         external
+        override
         _onlySurface
         returns (bytes32)
     {
