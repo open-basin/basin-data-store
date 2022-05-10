@@ -16,6 +16,8 @@ interface DataValidationLayer {
     function validateAndMintData(Models.BasicData memory data)
         external
         returns (bytes32);
+
+    function pendingDataForToken(uint256 token) external view returns (Models.BasicData memory);
 }
 
 contract DataValidation is DataValidationLayer, ChainlinkClient {
@@ -116,6 +118,12 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         return _requestDataValidation(data);
     }
 
+    function pendingDataForToken(uint256 token) external view override returns (Models.BasicData memory) {
+        require(tokenExists(token), "Pending Token does not exist");
+
+        return _pendingData[token];
+    } 
+
     // MARK: - Chainlink integration
 
     function _requestDataValidation(Models.BasicData memory data)
@@ -142,11 +150,10 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
 
     function fulfill(
         bytes32 _requestId,
-        bool _valid,
         uint256 _token
     ) external recordChainlinkFulfillment(_requestId) {
         require(responseIsValid(_token), "Data Validator denied transaction");
-        require(_pendingData[_token].exists, "Request ID does not exist");
+        require(tokenExists(_token), "Pending Data ID does not exist");
 
         DataStorageLayer(_dataStorageAddress).mint(_pendingData[_token]);
 
@@ -167,6 +174,10 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
                     Strings.toString(standardToken)
                 )
             );
+    }
+
+    function tokenExists(uint256 token) private view returns (bool) {
+        return _pendingData[token].exists;
     }
 
     function responseIsValid(uint256 respone) private pure returns (bool) {

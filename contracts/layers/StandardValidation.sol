@@ -16,6 +16,8 @@ interface StandardValidationLayer {
     function validateAndMintStandard(Models.BasicStandard memory standard)
         external
         returns (bytes32);
+
+    function pendingStandardForToken(uint256 token) external view returns (Models.BasicStandard memory);
 }
 
 contract StandardValidation is StandardValidationLayer, ChainlinkClient {
@@ -116,6 +118,12 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         return _requestStandardValidation(standard);
     }
 
+    function pendingStandardForToken(uint256 token) external view override returns (Models.BasicStandard memory) {
+        require(tokenExists(token), "Pending Token does not exist");
+
+        return _pendingStandards[token];
+    } 
+
     // MARK: - Chainlink integration
 
     function _requestStandardValidation(Models.BasicStandard memory standard)
@@ -143,7 +151,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         uint256 _token
     ) external recordChainlinkFulfillment(_requestId) {
         require(responseIsValid(_token), "Standard Validator denied transaction");
-        require(_pendingStandards[_token].exists, "Request ID does not exist");
+        require(tokenExists(_token), "Pending Token does not exist");
 
         StandardStorageLayer(_standardStorageAddress).mint(
             _pendingStandards[_token]
@@ -169,6 +177,10 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
                     Strings.toString(standardToken)
                 )
             );
+    }
+
+    function tokenExists(uint256 token) private view returns (bool) {
+        return _pendingStandards[token].exists;
     }
 
     function responseIsValid(uint256 respone) private pure returns (bool) {
