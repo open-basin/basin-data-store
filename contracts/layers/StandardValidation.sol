@@ -66,7 +66,6 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         _surfaceAddress = surfaceAddress;
         _standardStorageAddress = standardStorageAddress;
 
-        setChainlinkToken(link);
         setChainlinkOracle(oracle);
         _jobId = jobId;
         _fee = fee;

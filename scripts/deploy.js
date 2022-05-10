@@ -1,15 +1,15 @@
 const hre = require("hardhat");
 
 const main = async () => {
-    const [owner] = await hre.ethers.getSigners();
+    const owner = "0xe2eFc7F0D124B57B1F9a78164E1aBD0FDd337E1C";
 
-    console.log("Deploying contracts with", owner.address);
+    console.log("Deploying contracts with", owner);
     
     const standardStorageContractFactory = await hre.ethers.getContractFactory('StandardStorage');
     const standardStorageContract = await standardStorageContractFactory.deploy(
-        owner.address, 
-        owner.address, 
-        owner.address,
+        owner, 
+        owner, 
+        owner,
         {value: hre.ethers.utils.parseEther("0.001")}
     );
     await standardStorageContract.deployed();
@@ -17,8 +17,8 @@ const main = async () => {
 
     const dataStorageContractFactory = await hre.ethers.getContractFactory('DataStorage');
     const dataStorageContract = await dataStorageContractFactory.deploy(
-        owner.address, 
-        owner.address, 
+        owner, 
+        owner, 
         standardStorageContract.address,
         {value: hre.ethers.utils.parseEther("0.001")}
     );
@@ -26,7 +26,7 @@ const main = async () => {
     console.log("Data Storage contract deployed to:", dataStorageContract.address);
     
     let utf8Encode = new TextEncoder();
-    const link = owner.address;
+    const link = owner;
     const oracle = "0x3A56aE4a2831C3d3514b5D7Af5578E45eBDb7a40";
     const jobId = utf8Encode.encode("e5b0e6aeab36405ba33aea12c6988ed6");
     const fee = 0.1 * 10 ** 18;
@@ -34,7 +34,7 @@ const main = async () => {
 
     const standardValidationContractFactory = await hre.ethers.getContractFactory('StandardValidation');
     const standardValidationContract = await standardValidationContractFactory.deploy(
-        owner.address, 
+        owner, 
         standardStorageContract.address, 
         link,
         oracle,
@@ -48,7 +48,7 @@ const main = async () => {
 
     const dataValidationContractFactory = await hre.ethers.getContractFactory('DataValidation');
     const dataValidationContract = await dataValidationContractFactory.deploy(
-        owner.address, 
+        owner, 
         dataStorageContract.address,
         link,
         oracle,
