@@ -24,17 +24,23 @@ const main = async () => {
     );
     await dataStorageContract.deployed();
     console.log("Data Storage contract deployed to:", dataStorageContract.address);
-
-    const fee = 0.1 * 10 ** 18;
     
+    let utf8Encode = new TextEncoder();
+    const link = owner.address;
+    const oracle = "0x3A56aE4a2831C3d3514b5D7Af5578E45eBDb7a40";
+    const jobId = utf8Encode.encode("e5b0e6aeab36405ba33aea12c6988ed6");
+    const fee = 0.1 * 10 ** 18;
+    const url = "https://validate.rinkeby.openbasin.io/datastore/validate/standard"
+
     const standardValidationContractFactory = await hre.ethers.getContractFactory('StandardValidation');
     const standardValidationContract = await standardValidationContractFactory.deploy(
         owner.address, 
         standardStorageContract.address, 
-        "0x3A56aE4a2831C3d3514b5D7Af5578E45eBDb7a40", // TODO - Fix
-        ethers.utils.formatBytes32String(""), // TODO - Fix
-        ethers.utils.parseEther(`${fee}`), // TODO - Fix
-        "https://validate.rinkeby.openbasin.io/datastore/validate/standard",
+        link,
+        oracle,
+        jobId,
+        ethers.utils.parseEther(`${fee}`),
+        url,
         {value: hre.ethers.utils.parseEther("0.001")}
     );
     await standardValidationContract.deployed();
@@ -43,11 +49,12 @@ const main = async () => {
     const dataValidationContractFactory = await hre.ethers.getContractFactory('DataValidation');
     const dataValidationContract = await dataValidationContractFactory.deploy(
         owner.address, 
-        dataStorageContract.address, 
-        "0x3A56aE4a2831C3d3514b5D7Af5578E45eBDb7a40", // TODO - Fix
-        ethers.utils.formatBytes32String(""), // TODO - Fix
-        ethers.utils.parseEther(`${fee}`), // TODO - Fix
-        "https://validate.rinkeby.openbasin.io/datastore/validate/data",
+        dataStorageContract.address,
+        link,
+        oracle,
+        jobId,
+        ethers.utils.parseEther(`${fee}`),
+        url,
         {value: hre.ethers.utils.parseEther("0.001")}
     );
     await dataValidationContract.deployed();
@@ -74,6 +81,7 @@ const main = async () => {
     let setStandardStorageVisibility = await standardStorageContract.changeStandardVisibilityAddress(dataStorageContract.address);
     await setStandardStorageVisibility.wait();
 
+    console.log("Set up Standard Storage");
 
     let setDataStorageSurface = await dataStorageContract.changeSurfaceAddress(dataStoreContract.address);
     await setDataStorageSurface.wait();
@@ -81,13 +89,18 @@ const main = async () => {
     let setDataStorageValidation = await dataStorageContract.changeDataValidationAddress(dataValidationContract.address);
     await setDataStorageValidation.wait();
 
+    console.log("Set up Data Storage");
+
 
     let setStandardValidationSurface = await standardValidationContract.changeSurfaceAddress(dataStoreContract.address);
     await setStandardValidationSurface.wait();
 
+    console.log("Set up Standard Validation");
 
     let setDataValidationContract = await dataValidationContract.changeSurfaceAddress(dataStoreContract.address);
     await setDataValidationContract.wait();
+
+    console.log("Set up Data Validation");
 
     console.log("All Contracts deployed");
 };

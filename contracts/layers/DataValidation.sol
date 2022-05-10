@@ -33,7 +33,6 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     address private _dataStorageAddress;
 
     // Chainlink configurations
-    address private _oracle;
     bytes32 private _jobId;
     uint256 private _fee;
     string private _endpoint;
@@ -51,18 +50,22 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     constructor(
         address surfaceAddress,
         address dataStorageAddress,
+        address link,
         address oracle,
         bytes32 jobId,
         uint256 fee,
         string memory endpoint
     ) payable {
+        _tokenIds.increment();
+
         console.log("DataValidation contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
 
         _surfaceAddress = surfaceAddress;
         _dataStorageAddress = dataStorageAddress;
 
-        _oracle = oracle;
+        setChainlinkToken(link);
+        setChainlinkOracle(oracle);
         _jobId = jobId;
         _fee = fee;
         _endpoint = endpoint;
@@ -134,7 +137,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
             "get", validatorEndpoint(token, data.standard)
         );
 
-        return sendChainlinkRequestTo(_oracle, request, _fee);
+        return sendChainlinkRequest(request, _fee);
     }
 
     function fulfill(
@@ -142,7 +145,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         bool _valid,
         uint256 _token
     ) external recordChainlinkFulfillment(_requestId) {
-        require(_valid, "Validator denied transaction");
+        require(responseIsValid(_token), "Data Validator denied transaction");
         require(_pendingData[_token].exists, "Request ID does not exist");
 
         DataStorageLayer(_dataStorageAddress).mint(_pendingData[_token]);
@@ -164,5 +167,9 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
                     Strings.toString(standardToken)
                 )
             );
+    }
+
+    function responseIsValid(uint256 respone) private pure returns (bool) {
+        return respone > 0;
     }
 }

@@ -33,7 +33,6 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     address private _standardStorageAddress;
 
     // Chainlink configurations
-    address private _oracle;
     bytes32 private _jobId;
     uint256 private _fee;
     string private _endpoint;
@@ -51,18 +50,22 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     constructor(
         address surfaceAddress,
         address standardStorageAddress,
+        address link,
         address oracle,
         bytes32 jobId,
         uint256 fee,
         string memory endpoint
     ) payable {
+        _tokenIds.increment();
+
         console.log("DataValidation contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
 
         _surfaceAddress = surfaceAddress;
         _standardStorageAddress = standardStorageAddress;
 
-        _oracle = oracle;
+        setChainlinkToken(link);
+        setChainlinkOracle(oracle);
         _jobId = jobId;
         _fee = fee;
         _endpoint = endpoint;
@@ -132,15 +135,14 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
 
         request.add("get", validatorEndpoint(token));
 
-        return sendChainlinkRequestTo(_oracle, request, _fee);
+        return sendChainlinkRequest(request, _fee);
     }
 
     function fulfill(
         bytes32 _requestId,
-        bool _valid,
         uint256 _token
     ) external recordChainlinkFulfillment(_requestId) {
-        require(_valid, "Validator denied transaction");
+        require(responseIsValid(_token), "Standard Validator denied transaction");
         require(_pendingStandards[_token].exists, "Request ID does not exist");
 
         StandardStorageLayer(_standardStorageAddress).mint(
@@ -161,7 +163,15 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     {
         return
             string(
-                abi.encodePacked(_endpoint, "?id=", Strings.toString(standardToken))
+                abi.encodePacked(
+                    _endpoint,
+                    "?id=",
+                    Strings.toString(standardToken)
+                )
             );
+    }
+
+    function responseIsValid(uint256 respone) private pure returns (bool) {
+        return respone > 0;
     }
 }
