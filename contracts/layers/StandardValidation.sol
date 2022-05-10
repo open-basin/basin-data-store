@@ -60,7 +60,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     ) payable {
         _tokenIds.increment();
 
-        console.log("DataValidation contract constructed by %s", msg.sender);
+        console.log("StandardValidation contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
 
         _surfaceAddress = surfaceAddress;
