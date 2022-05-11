@@ -30,8 +30,8 @@ const main = async () => {
     const oracle = "0x3A56aE4a2831C3d3514b5D7Af5578E45eBDb7a40";
     const jobId = utf8Encode.encode("e5b0e6aeab36405ba33aea12c6988ed6");
     const fee = 0.1 * 10 ** 18;
-    const standardUrl = "https://validate.goerli.openbasin.io/datastore/validate/standard"
-    const dataUrl = "https://validate.goerli.openbasin.io/datastore/validate/data"
+    const standardUrl = "https://validate.rinkeby.openbasin.io/datastore/validate/standard"
+    const dataUrl = "https://validate.rinkeby.openbasin.io/datastore/validate/data"
 
     const standardValidationContractFactory = await hre.ethers.getContractFactory('StandardValidation');
     const standardValidationContract = await standardValidationContractFactory.deploy(
