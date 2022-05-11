@@ -17,7 +17,10 @@ interface DataValidationLayer {
         external
         returns (bytes32);
 
-    function pendingDataForToken(uint256 token) external view returns (Models.BasicData memory);
+    function pendingDataForToken(uint256 token)
+        external
+        view
+        returns (Models.BasicData memory);
 }
 
 contract DataValidation is DataValidationLayer, ChainlinkClient {
@@ -118,11 +121,16 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         return _requestDataValidation(data);
     }
 
-    function pendingDataForToken(uint256 token) external view override returns (Models.BasicData memory) {
+    function pendingDataForToken(uint256 token)
+        external
+        view
+        override
+        returns (Models.BasicData memory)
+    {
         require(tokenExists(token), "Pending Token does not exist");
 
         return _pendingData[token];
-    } 
+    }
 
     // MARK: - Chainlink integration
 
@@ -142,16 +150,17 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         _pendingData[token] = data;
 
         request.add(
-            "get", validatorEndpoint(token, data.standard)
+            "get",
+            validatorEndpoint(token, data.standard, data.payload)
         );
 
         return sendChainlinkRequest(request, _fee);
     }
 
-    function fulfill(
-        bytes32 _requestId,
-        uint256 _token
-    ) external recordChainlinkFulfillment(_requestId) {
+    function fulfill(bytes32 _requestId, uint256 _token)
+        external
+        recordChainlinkFulfillment(_requestId)
+    {
         require(responseIsValid(_token), "Data Validator denied transaction");
         require(tokenExists(_token), "Pending Data ID does not exist");
 
@@ -164,14 +173,21 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
 
     // MARK: - Helpers
 
-    function validatorEndpoint(uint256 dataToken, uint256 standardToken) private view returns (string memory) {
-        return string(
+    function validatorEndpoint(
+        uint256 dataToken,
+        uint256 standardToken,
+        string memory payload
+    ) private view returns (string memory) {
+        return
+            string(
                 abi.encodePacked(
                     _endpoint,
                     "?data=",
                     Strings.toString(dataToken),
                     "&standard=",
-                    Strings.toString(standardToken)
+                    Strings.toString(standardToken),
+                    "&payload=",
+                    payload
                 )
             );
     }

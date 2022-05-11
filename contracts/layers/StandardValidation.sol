@@ -17,7 +17,10 @@ interface StandardValidationLayer {
         external
         returns (bytes32);
 
-    function pendingStandardForToken(uint256 token) external view returns (Models.BasicStandard memory);
+    function pendingStandardForToken(uint256 token)
+        external
+        view
+        returns (Models.BasicStandard memory);
 }
 
 contract StandardValidation is StandardValidationLayer, ChainlinkClient {
@@ -60,7 +63,10 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     ) payable {
         _tokenIds.increment();
 
-        console.log("StandardValidation contract constructed by %s", msg.sender);
+        console.log(
+            "StandardValidation contract constructed by %s",
+            msg.sender
+        );
         _contractOwner = payable(msg.sender);
 
         _surfaceAddress = surfaceAddress;
@@ -118,11 +124,16 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         return _requestStandardValidation(standard);
     }
 
-    function pendingStandardForToken(uint256 token) external view override returns (Models.BasicStandard memory) {
+    function pendingStandardForToken(uint256 token)
+        external
+        view
+        override
+        returns (Models.BasicStandard memory)
+    {
         require(tokenExists(token), "Pending Token does not exist");
 
         return _pendingStandards[token];
-    } 
+    }
 
     // MARK: - Chainlink integration
 
@@ -141,16 +152,19 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
 
         _pendingStandards[token] = standard;
 
-        request.add("get", validatorEndpoint(token));
+        request.add("get", validatorEndpoint(token, standard.schema));
 
         return sendChainlinkRequest(request, _fee);
     }
 
-    function fulfill(
-        bytes32 _requestId,
-        uint256 _token
-    ) external recordChainlinkFulfillment(_requestId) {
-        require(responseIsValid(_token), "Standard Validator denied transaction");
+    function fulfill(bytes32 _requestId, uint256 _token)
+        external
+        recordChainlinkFulfillment(_requestId)
+    {
+        require(
+            responseIsValid(_token),
+            "Standard Validator denied transaction"
+        );
         require(tokenExists(_token), "Pending Token does not exist");
 
         StandardStorageLayer(_standardStorageAddress).mint(
@@ -164,7 +178,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
 
     // MARK: - Helpers
 
-    function validatorEndpoint(uint256 standardToken)
+    function validatorEndpoint(uint256 standardToken, string memory schema)
         private
         view
         returns (string memory)
@@ -173,8 +187,10 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
             string(
                 abi.encodePacked(
                     _endpoint,
-                    "?id=",
-                    Strings.toString(standardToken)
+                    "?token=",
+                    Strings.toString(standardToken),
+                    "&schema=",
+                    schema
                 )
             );
     }
