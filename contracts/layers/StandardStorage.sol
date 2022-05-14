@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import {Models} from "../libraries/Models.sol";
 
 interface StandardStorageLayer {
-    function mint(Models.BasicStandard memory basicStandard) external;
+    function mint(Models.BasicStandard memory basicStandard) external payable;
 
     function standardForToken(uint256 token)
         external
@@ -126,6 +126,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
 
     function mint(Models.BasicStandard memory basicStandard)
         external
+        payable
         override
         _onlyValidator
     {

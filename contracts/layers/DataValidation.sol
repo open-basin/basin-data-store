@@ -15,6 +15,7 @@ import {DataStorageLayer} from "./DataStorage.sol";
 interface DataValidationLayer {
     function validateAndMintData(Models.BasicData memory data)
         external
+        payable
         returns (bytes32);
 
     function pendingDataForToken(uint256 token)
@@ -114,6 +115,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
 
     function validateAndMintData(Models.BasicData memory data)
         external
+        payable
         override
         _onlySurface
         returns (bytes32)
@@ -153,6 +155,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
             "get",
             validatorEndpoint(token, data.standard, data.payload)
         );
+        request.add("path", "token");
 
         return sendChainlinkRequest(request, _fee);
     }

@@ -15,6 +15,7 @@ import {StandardStorageLayer} from "./StandardStorage.sol";
 interface StandardValidationLayer {
     function validateAndMintStandard(Models.BasicStandard memory standard)
         external
+        payable
         returns (bytes32);
 
     function pendingStandardForToken(uint256 token)
@@ -117,6 +118,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
 
     function validateAndMintStandard(Models.BasicStandard memory standard)
         external
+        payable
         override
         _onlySurface
         returns (bytes32)
@@ -153,6 +155,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         _pendingStandards[token] = standard;
 
         request.add("get", validatorEndpoint(token, standard.schema));
+        request.add("path", "token");
 
         return sendChainlinkRequest(request, _fee);
     }

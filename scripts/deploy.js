@@ -26,7 +26,7 @@ const main = async () => {
     console.log("Data Storage contract deployed to:", dataStorageContract.address);
 
     let utf8Encode = new TextEncoder();
-    const link = owner;
+    const link = "0x01BE23585060835E02B77ef475b0Cc51aA1e0709";
     const oracle = "0x3A56aE4a2831C3d3514b5D7Af5578E45eBDb7a40";
     const jobId = utf8Encode.encode("e5b0e6aeab36405ba33aea12c6988ed6");
     const fee = 0.1 * 10 ** 18;
@@ -104,6 +104,16 @@ const main = async () => {
     console.log("Set up Data Validation");
 
     console.log("All Contracts deployed");
+
+    var standards = [];
+
+    // console.log("----------------------- Create Standard");
+
+    // let createStandard = await dataStoreContract.storeStandard("Zero", "{}", { value: hre.ethers.utils.parseEther("0.001") });
+    // await createStandard.wait();
+
+    // standards = await dataStoreContract.allStandards();
+    // console.log("standards:", structureStandards(standards));
 };
 
 const runMain = async () => {

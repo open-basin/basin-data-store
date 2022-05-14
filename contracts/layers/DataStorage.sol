@@ -10,7 +10,7 @@ import {Models} from "../libraries/Models.sol";
 import {StandardVisibility} from "./StandardStorage.sol";
 
 interface DataStorageLayer {
-    function mint(Models.BasicData memory basicData) external;
+    function mint(Models.BasicData memory basicData) external payable;
 
     function burn(Models.Data memory data) external;
 
@@ -152,7 +152,7 @@ contract DataStorage is DataStorageLayer {
 
     // MARK: - External
 
-    function mint(Models.BasicData memory basicData) external override _onlyValidator {
+    function mint(Models.BasicData memory basicData) external payable override _onlyValidator {
         Models.Data memory data = Models.Data(
             _tokenIds.current(),
             basicData.owner,

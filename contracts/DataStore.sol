@@ -103,7 +103,7 @@ contract DataStore {
         address provider,
         uint256 standard,
         string memory payload
-    ) external {
+    ) external payable {
         Models.BasicData memory data = Models.BasicData(
             msg.sender,
             provider,
@@ -117,7 +117,7 @@ contract DataStore {
         return;
     }
 
-    function storeStandard(string memory name, string memory schema) external {
+    function storeStandard(string memory name, string memory schema) external payable {
         Models.BasicStandard memory standard = Models.BasicStandard(
             Models.encoded(name),
             Models.encoded(schema),
