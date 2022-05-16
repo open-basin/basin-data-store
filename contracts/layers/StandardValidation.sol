@@ -161,7 +161,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     }
 
     function fulfill(bytes32 _requestId, uint256 _token)
-        external
+        public
         recordChainlinkFulfillment(_requestId)
     {
         require(

@@ -334,12 +334,17 @@ contract DataStorage is DataStorageLayer {
     function _isValidData(Models.Data memory data) private view returns (bool) {
         return
             _validOwner(data.owner) &&
+            _validProvider(data.provider) &&
             !_tokenExists(data.token) &&
             _standardExists(data.standard);
     }
 
     function _validOwner(address owner) private pure returns (bool) {
         return owner != address(0);
+    }
+
+    function _validProvider(address provider) private pure returns (bool) {
+        return provider != address(0);
     }
 
     function _tokenExists(uint256 tokenId) private view returns (bool) {

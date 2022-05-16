@@ -11,6 +11,7 @@ import {Base64} from "../libraries/Base64.sol";
 import {Models} from "../libraries/Models.sol";
 
 import {DataStorageLayer} from "./DataStorage.sol";
+import {StandardVisibility} from "./StandardStorage.sol";
 
 interface DataValidationLayer {
     function validateAndMintData(Models.BasicData memory data)
@@ -38,6 +39,9 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     // Data Storage Contract Address
     address private _dataStorageAddress;
 
+    // Standard Visibiliy Contract Address
+    address private _standardVisibilityAddress;
+
     // Chainlink configurations
     bytes32 private _jobId;
     uint256 private _fee;
@@ -56,6 +60,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     constructor(
         address surfaceAddress,
         address dataStorageAddress,
+        address standardVisibilityAddress,
         address link,
         address oracle,
         bytes32 jobId,
@@ -69,6 +74,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
 
         _surfaceAddress = surfaceAddress;
         _dataStorageAddress = dataStorageAddress;
+        _standardVisibilityAddress = standardVisibilityAddress;
 
         setChainlinkToken(link);
         setChainlinkOracle(oracle);
@@ -111,6 +117,14 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         _dataStorageAddress = dataStorageAddress;
     }
 
+    /// @dev Changes the standard visibility contract address
+    function changeStandardVisibilityAddress(address standardVisibilityAddress)
+        external
+        _onlyOwner
+    {
+        _standardVisibilityAddress = standardVisibilityAddress;
+    }
+
     // MARK: - Public
 
     function validateAndMintData(Models.BasicData memory data)
@@ -140,6 +154,8 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         private
         returns (bytes32)
     {
+        require(_isValidData(data), "Data is invalid");
+
         Chainlink.Request memory request = buildChainlinkRequest(
             _jobId,
             address(this),
@@ -161,7 +177,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     }
 
     function fulfill(bytes32 _requestId, uint256 _token)
-        external
+        public
         recordChainlinkFulfillment(_requestId)
     {
         require(responseIsValid(_token), "Data Validator denied transaction");
@@ -195,11 +211,35 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
             );
     }
 
+    // MARK: - Helpers
+
     function tokenExists(uint256 token) private view returns (bool) {
         return _pendingData[token].exists;
     }
 
+    function _isValidData(Models.BasicData memory data) private view returns (bool) {
+        return
+            _validOwner(data.owner) &&
+            _validProvider(data.provider) &&
+            _standardExists(data.standard);
+    }
+
+    function _validOwner(address owner) private pure returns (bool) {
+        return owner != address(0);
+    }
+
+    function _validProvider(address provider) private pure returns (bool) {
+        return provider != address(0);
+    }
+
     function responseIsValid(uint256 respone) private pure returns (bool) {
         return respone > 0;
+    }
+
+        function _standardExists(uint256 standardId) private view returns (bool) {
+        return
+            StandardVisibility(_standardVisibilityAddress).standardExists(
+                standardId
+            );
     }
 }

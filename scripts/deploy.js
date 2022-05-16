@@ -1,12 +1,13 @@
 const hre = require("hardhat");
 
 const main = async () => {
-    const owner = "0xe2eFc7F0D124B57B1F9a78164E1aBD0FDd337E1C";
+    const owner = process.env.PUBLIC_KEY;
 
     console.log("Deploying contracts with", owner);
 
     const standardStorageContractFactory = await hre.ethers.getContractFactory('StandardStorage');
     const standardStorageContract = await standardStorageContractFactory.deploy(
+        owner,
         owner,
         owner,
         owner,
@@ -51,6 +52,7 @@ const main = async () => {
     const dataValidationContract = await dataValidationContractFactory.deploy(
         owner,
         dataStorageContract.address,
+        standardStorageContract.address,
         link,
         oracle,
         jobId,
@@ -79,8 +81,11 @@ const main = async () => {
     let setStandardStorageValidation = await standardStorageContract.changeStandardValidationAddress(standardValidationContract.address);
     await setStandardStorageValidation.wait();
 
-    let setStandardStorageVisibility = await standardStorageContract.changeStandardVisibilityAddress(dataStorageContract.address);
-    await setStandardStorageVisibility.wait();
+    let setStandardStorageVisibilityStorage = await standardStorageContract.changeStandardVisibilityStorageAddress(dataStorageContract.address);
+    await setStandardStorageVisibilityStorage.wait();
+
+    let setStandardStorageVisibilityValidation = await standardStorageContract.changeStandardVisibilityValidationAddress(dataValidationContract.address);
+    await setStandardStorageVisibilityValidation.wait();
 
     console.log("Set up Standard Storage");
 
@@ -91,7 +96,6 @@ const main = async () => {
     await setDataStorageValidation.wait();
 
     console.log("Set up Data Storage");
-
 
     let setStandardValidationSurface = await standardValidationContract.changeSurfaceAddress(dataStoreContract.address);
     await setStandardValidationSurface.wait();
@@ -104,16 +108,6 @@ const main = async () => {
     console.log("Set up Data Validation");
 
     console.log("All Contracts deployed");
-
-    var standards = [];
-
-    // console.log("----------------------- Create Standard");
-
-    // let createStandard = await dataStoreContract.storeStandard("Zero", "{}", { value: hre.ethers.utils.parseEther("0.001") });
-    // await createStandard.wait();
-
-    // standards = await dataStoreContract.allStandards();
-    // console.log("standards:", structureStandards(standards));
 };
 
 const runMain = async () => {

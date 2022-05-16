@@ -36,8 +36,11 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     // Standard Validation Contract Address
     address private _standardValidationAddress;
 
-    // Standard Visibility Contract Address
-    address private _standardVisibilityAddress;
+    // Standard Visibility Storage Contract Address
+    address private _standardVisibilityStorageAddress;
+
+    // Standard Visibility Validation Contract Address
+    address private _standardVisibilityValidationAddress;
 
     // Token Ids for data
     Counters.Counter private _tokenIds;
@@ -52,14 +55,16 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     constructor(
         address surfaceAddress,
         address standardValidationAddress,
-        address standardVisibilityAddress
+        address standardVisibilityStorageAddress,
+        address standardVisibilityValidationAddress
     ) payable {
         console.log("StandardStorage contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
 
         _surfaceAddress = surfaceAddress;
         _standardValidationAddress = standardValidationAddress;
-        _standardVisibilityAddress = standardVisibilityAddress;
+        _standardVisibilityStorageAddress = standardVisibilityStorageAddress;
+        _standardVisibilityValidationAddress = standardVisibilityValidationAddress;
     }
 
     fallback() external {
@@ -95,7 +100,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     /// @dev Checks if the signer is the contract's standard visibility address
     modifier _onlyVisibility() {
         require(
-            msg.sender == _standardVisibilityAddress,
+            msg.sender == _standardVisibilityStorageAddress || msg.sender == _standardVisibilityValidationAddress,
             "Must be contract's visibility address"
         );
         _;
@@ -114,12 +119,20 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         _standardValidationAddress = standardValidationAddress;
     }
 
-    /// @dev Changes the standard visibility contract address
-    function changeStandardVisibilityAddress(address standardVisibilityAddress)
+    /// @dev Changes the standard visibility storage contract address
+    function changeStandardVisibilityStorageAddress(address standardVisibilityStorageAddress)
         external
         _onlyOwner
     {
-        _standardVisibilityAddress = standardVisibilityAddress;
+        _standardVisibilityStorageAddress = standardVisibilityStorageAddress;
+    }
+
+    /// @dev Changes the standard visibility validation contract address
+    function changeStandardVisibilityValidationAddress(address standardVisibilityValidationAddress)
+        external
+        _onlyOwner
+    {
+        _standardVisibilityValidationAddress = standardVisibilityValidationAddress;
     }
 
     // MARK: - External
