@@ -100,7 +100,8 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     /// @dev Checks if the signer is the contract's standard visibility address
     modifier _onlyVisibility() {
         require(
-            msg.sender == _standardVisibilityStorageAddress || msg.sender == _standardVisibilityValidationAddress,
+            msg.sender == _standardVisibilityStorageAddress ||
+                msg.sender == _standardVisibilityValidationAddress,
             "Must be contract's visibility address"
         );
         _;
@@ -120,18 +121,16 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     }
 
     /// @dev Changes the standard visibility storage contract address
-    function changeStandardVisibilityStorageAddress(address standardVisibilityStorageAddress)
-        external
-        _onlyOwner
-    {
+    function changeStandardVisibilityStorageAddress(
+        address standardVisibilityStorageAddress
+    ) external _onlyOwner {
         _standardVisibilityStorageAddress = standardVisibilityStorageAddress;
     }
 
     /// @dev Changes the standard visibility validation contract address
-    function changeStandardVisibilityValidationAddress(address standardVisibilityValidationAddress)
-        external
-        _onlyOwner
-    {
+    function changeStandardVisibilityValidationAddress(
+        address standardVisibilityValidationAddress
+    ) external _onlyOwner {
         _standardVisibilityValidationAddress = standardVisibilityValidationAddress;
     }
 

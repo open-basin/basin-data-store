@@ -117,7 +117,10 @@ contract DataStore {
         return;
     }
 
-    function storeStandard(string memory name, string memory schema) external payable {
+    function storeStandard(string memory name, string memory schema)
+        external
+        payable
+    {
         Models.BasicStandard memory standard = Models.BasicStandard(
             Models.encoded(name),
             Models.encoded(schema),

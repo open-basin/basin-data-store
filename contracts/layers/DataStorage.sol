@@ -152,7 +152,12 @@ contract DataStorage is DataStorageLayer {
 
     // MARK: - External
 
-    function mint(Models.BasicData memory basicData) external payable override _onlyValidator {
+    function mint(Models.BasicData memory basicData)
+        external
+        payable
+        override
+        _onlyValidator
+    {
         Models.Data memory data = Models.Data(
             _tokenIds.current(),
             basicData.owner,
@@ -179,7 +184,11 @@ contract DataStorage is DataStorageLayer {
         return;
     }
 
-    function transfer(uint256 token, address to) external override _onlySurface {
+    function transfer(uint256 token, address to)
+        external
+        override
+        _onlySurface
+    {
         _transferData(token, to);
 
         emit NewTransfer(_data[token]);

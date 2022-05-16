@@ -217,7 +217,11 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         return _pendingData[token].exists;
     }
 
-    function _isValidData(Models.BasicData memory data) private view returns (bool) {
+    function _isValidData(Models.BasicData memory data)
+        private
+        view
+        returns (bool)
+    {
         return
             _validOwner(data.owner) &&
             _validProvider(data.provider) &&
@@ -236,7 +240,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         return respone > 0;
     }
 
-        function _standardExists(uint256 standardId) private view returns (bool) {
+    function _standardExists(uint256 standardId) private view returns (bool) {
         return
             StandardVisibility(_standardVisibilityAddress).standardExists(
                 standardId
