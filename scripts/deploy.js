@@ -1,6 +1,36 @@
 const hre = require("hardhat");
+const { utils } = require("./utils/utils.js");
+const { constants } = require("./utils/constants.js");
 
 const main = async () => {
+    const network = process.env.NETWORK;
+    var chainAddress = "";
+    var oracleAddress = "";
+    var jobId = "";
+    var standardEndpoint = "";
+    var dataEndpoint = "";
+    switch (network) {
+        case 'RINKEBY':
+            chainAddress = constants.rinkeby.chainAddress;
+            oracleAddress = constants.rinkeby.oracleAddress;
+            jobId = constants.rinkeby.jobId;
+            standardEndpoint = constants.rinkeby.standardEndpoint;
+            dataEndpoint = constants.rinkeby.dataEndpoint;
+            break;
+        case 'KOVAN':
+            chainAddress = constants.kovan.chainAddress;
+            oracleAddress = constants.kovan.oracleAddress;
+            jobId = constants.kovan.jobId;
+            standardEndpoint = constants.kovan.standardEndpoint;
+            dataEndpoint = constants.kovan.dataEndpoint;
+            break;
+        default:
+            break;
+    }
+
+    console.log(network);
+    console.log(chainAddress);
+
     const owner = process.env.PUBLIC_KEY;
 
     console.log("Deploying contracts with", owner);
@@ -26,23 +56,15 @@ const main = async () => {
     await dataStorageContract.deployed();
     console.log("Data Storage contract deployed to:", dataStorageContract.address);
 
-    let utf8Encode = new TextEncoder();
-    const link = "0x01BE23585060835E02B77ef475b0Cc51aA1e0709";
-    const oracle = "0x3A56aE4a2831C3d3514b5D7Af5578E45eBDb7a40";
-    const jobId = utf8Encode.encode("e5b0e6aeab36405ba33aea12c6988ed6");
-    const fee = 0.1 * 10 ** 18;
-    const standardUrl = "https://validate.rinkeby.openbasin.io/datastore/validate/standard"
-    const dataUrl = "https://validate.rinkeby.openbasin.io/datastore/validate/data"
-
     const standardValidationContractFactory = await hre.ethers.getContractFactory('StandardValidation');
     const standardValidationContract = await standardValidationContractFactory.deploy(
         owner,
         standardStorageContract.address,
-        link,
-        oracle,
+        chainAddress,
+        oracleAddress,
         jobId,
-        ethers.utils.parseEther(`${fee}`),
-        standardUrl,
+        ethers.utils.parseEther(`${constants.fee}`),
+        standardEndpoint,
         { value: hre.ethers.utils.parseEther("0.001") }
     );
     await standardValidationContract.deployed();
@@ -53,11 +75,11 @@ const main = async () => {
         owner,
         dataStorageContract.address,
         standardStorageContract.address,
-        link,
-        oracle,
+        chainAddress,
+        oracleAddress,
         jobId,
-        ethers.utils.parseEther(`${fee}`),
-        dataUrl,
+        ethers.utils.parseEther(`${constants.fee}`),
+        dataEndpoint,
         { value: hre.ethers.utils.parseEther("0.001") }
     );
     await dataValidationContract.deployed();
@@ -109,6 +131,7 @@ const main = async () => {
 
     console.log("All Contracts deployed");
 };
+
 
 const runMain = async () => {
     try {

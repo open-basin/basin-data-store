@@ -200,4 +200,10 @@ contract DataStore {
     function allStandards() external view returns (Models.Standard[] memory) {
         return StandardStorageLayer(_standardStorageAddress).allStandards();
     }
+
+    // MARK: - Helpers
+
+    function _validAddress(address adr) private pure returns (bool) {
+        return adr != address(0);
+    }
 }

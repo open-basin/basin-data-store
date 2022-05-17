@@ -28,6 +28,10 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
       url: process.env.GOERLI_ALCHEMY_KEY,
       accounts: [process.env.PRIVATE_KEY],
     },
+    kovan: {
+      url: process.env.KOVAN_ALCHEMY_KEY,
+      accounts: [process.env.PRIVATE_KEY],
+    },
     mainnet: {
       chainId: 1,
       url: process.env.PROD_ALCHEMY_KEY,
