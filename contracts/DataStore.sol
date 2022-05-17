@@ -51,7 +51,7 @@ contract DataStore {
     }
 
     fallback() external {
-        console.log("Transaction failed.");
+        console.log("DataStore Transaction failed.");
     }
 
     /// @dev Checks if the signer is the contract owner
@@ -122,6 +122,7 @@ contract DataStore {
         payable
     {
         Models.BasicStandard memory standard = Models.BasicStandard(
+            msg.sender,
             Models.encoded(name),
             Models.encoded(schema),
             true

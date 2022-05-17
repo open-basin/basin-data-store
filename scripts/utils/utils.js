@@ -22,6 +22,7 @@ const structureStandards = (standards) => {
     return standards.map(standard => {
         return {
             token: standard.token.toNumber(),
+            minter: standard.minter,
             name: standard.name,
             schema: standard.schema,
             exists: standard.exists

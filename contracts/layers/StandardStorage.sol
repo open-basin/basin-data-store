@@ -48,6 +48,9 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     // Standards map
     mapping(uint256 => Models.Standard) private _standards;
 
+    // Minters of standard map
+    mapping(uint256 => address) private _standardMinters;
+
     // New Standard event
     event NewStandard(Models.Standard standard);
 
@@ -68,7 +71,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     }
 
     fallback() external {
-        console.log("Transaction failed.");
+        console.log("Standard Storage Transaction failed.");
     }
 
     /// @dev Checks if the signer is the contract owner
@@ -144,6 +147,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     {
         Models.Standard memory standard = Models.Standard(
             _tokenIds.current(),
+            basicStandard.minter,
             basicStandard.name,
             basicStandard.schema,
             true
@@ -196,12 +200,13 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         require(!_standardExists(standard.token), "Standard already exists.");
 
         _standards[standard.token] = standard;
+        _standardMinters[standard.token] = standard.minter;
     }
 
     // MARK: - Helpers
 
-    function _standardExists(uint256 standardId) private view returns (bool) {
-        return standardId < _tokenIds.current();
+    function _standardExists(uint256 token) private view returns (bool) {
+        return _standardMinters[token] != address(0);
     }
 
     function standardExists(uint256 standardId)

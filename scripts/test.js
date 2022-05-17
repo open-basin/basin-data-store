@@ -8,8 +8,8 @@ const main = async () => {
 
     console.log("----------------------- Create Standard");
 
-    let createStandard = await dataStoreContract.storeStandard("Zero", "{}", { gasLimit: 3500000 });
-    await createStandard.wait();
+    // let createStandard = await dataStoreContract.storeStandard("One", "{}", { gasLimit: 3500000 });
+    // await createStandard.wait();
 
     standards = await dataStoreContract.allStandards();
     console.log("standards:", utils.structureStandards(standards));

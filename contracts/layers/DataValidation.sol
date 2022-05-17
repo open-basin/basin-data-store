@@ -14,10 +14,7 @@ import {DataStorageLayer} from "./DataStorage.sol";
 import {StandardVisibility} from "./StandardStorage.sol";
 
 interface DataValidationLayer {
-    function validateAndMintData(Models.BasicData memory data)
-        external
-        payable
-        returns (bytes32);
+    function validateAndMintData(Models.BasicData memory data) external payable;
 
     function pendingDataForToken(uint256 token)
         external
@@ -29,6 +26,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     using Counters for Counters.Counter;
     using Chainlink for Chainlink.Request;
     using Models for Models.BasicData;
+    using Models for Models.OracleConfiguration;
 
     // Contract owner
     address payable private _contractOwner;
@@ -43,9 +41,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     address private _standardVisibilityAddress;
 
     // Chainlink configurations
-    bytes32 private _jobId;
-    uint256 private _fee;
-    string private _endpoint;
+    Models.OracleConfiguration private _configuration;
 
     // Token Ids for pending data
     Counters.Counter private _tokenIds;
@@ -77,14 +73,17 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         _standardVisibilityAddress = standardVisibilityAddress;
 
         setChainlinkToken(link);
-        setChainlinkOracle(oracle);
-        _jobId = jobId;
-        _fee = fee;
-        _endpoint = endpoint;
+
+        _configuration = Models.OracleConfiguration(
+            oracle,
+            jobId,
+            fee,
+            endpoint
+        );
     }
 
     fallback() external {
-        console.log("Transaction failed.");
+        console.log("Data Validation Transaction failed.");
     }
 
     /// @dev Checks if the signer is the contract owner
@@ -125,6 +124,21 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         _standardVisibilityAddress = standardVisibilityAddress;
     }
 
+    /// @dev Changes the chainlink confiugrations
+    function changeChailinkConfiguration(
+        address oracle,
+        bytes32 jobId,
+        uint256 fee,
+        string memory endpoint
+    ) external _onlyOwner {
+        _configuration = Models.OracleConfiguration(
+            oracle,
+            jobId,
+            fee,
+            endpoint
+        );
+    }
+
     // MARK: - Public
 
     function validateAndMintData(Models.BasicData memory data)
@@ -132,9 +146,8 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         payable
         override
         _onlySurface
-        returns (bytes32)
     {
-        return _requestDataValidation(data);
+        _requestDataValidation(data);
     }
 
     function pendingDataForToken(uint256 token)
@@ -150,14 +163,11 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
 
     // MARK: - Chainlink integration
 
-    function _requestDataValidation(Models.BasicData memory data)
-        private
-        returns (bytes32)
-    {
+    function _requestDataValidation(Models.BasicData memory data) private {
         require(_isValidData(data), "Data is invalid");
 
         Chainlink.Request memory request = buildChainlinkRequest(
-            _jobId,
+            _configuration.jobId,
             address(this),
             this.fulfill.selector
         );
@@ -173,7 +183,11 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         );
         request.add("path", "token");
 
-        return sendChainlinkRequest(request, _fee);
+        sendChainlinkRequestTo(
+            _configuration.oracle,
+            request,
+            _configuration.fee
+        );
     }
 
     function fulfill(bytes32 _requestId, uint256 _token)
@@ -200,7 +214,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         return
             string(
                 abi.encodePacked(
-                    _endpoint,
+                    _configuration.endpoint,
                     "?data=",
                     Strings.toString(dataToken),
                     "&standard=",

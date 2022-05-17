@@ -26,6 +26,7 @@ library Models {
 
     // Basic Standard structure
     struct BasicStandard {
+        address minter;
         string name;
         string schema;
         bool exists;
@@ -34,9 +35,18 @@ library Models {
     // Standard structure
     struct Standard {
         uint256 token;
+        address minter;
         string name;
         string schema;
         bool exists;
+    }
+
+    // Oracle Configuration structure
+    struct OracleConfiguration {
+        address oracle;
+        bytes32 jobId;
+        uint256 fee;
+        string endpoint;
     }
 
     /// @dev Gets the raw standard
@@ -47,6 +57,7 @@ library Models {
     {
         Standard memory newStandard = Standard(
             standard.token,
+            standard.minter,
             decoded(standard.name),
             decoded(standard.schema),
             standard.exists
@@ -76,6 +87,7 @@ library Models {
         returns (BasicStandard memory)
     {
         BasicStandard memory newStandard = BasicStandard(
+            standard.minter,
             decoded(standard.name),
             decoded(standard.schema),
             standard.exists

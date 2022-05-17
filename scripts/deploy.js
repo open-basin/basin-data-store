@@ -4,16 +4,21 @@ const { constants } = require("./utils/constants.js");
 
 const main = async () => {
     const network = process.env.NETWORK;
+    const owner = process.env.PUBLIC_KEY;
+
     var chainAddress = "";
     var oracleAddress = "";
     var jobId = "";
+    var fee = 0;
     var standardEndpoint = "";
     var dataEndpoint = "";
+
     switch (network) {
         case 'RINKEBY':
             chainAddress = constants.rinkeby.chainAddress;
             oracleAddress = constants.rinkeby.oracleAddress;
             jobId = constants.rinkeby.jobId;
+            fee = constants.rinkeby.fee;
             standardEndpoint = constants.rinkeby.standardEndpoint;
             dataEndpoint = constants.rinkeby.dataEndpoint;
             break;
@@ -21,6 +26,7 @@ const main = async () => {
             chainAddress = constants.kovan.chainAddress;
             oracleAddress = constants.kovan.oracleAddress;
             jobId = constants.kovan.jobId;
+            fee = constants.kovan.fee;
             standardEndpoint = constants.kovan.standardEndpoint;
             dataEndpoint = constants.kovan.dataEndpoint;
             break;
@@ -28,11 +34,7 @@ const main = async () => {
             break;
     }
 
-    console.log(network);
-    console.log(chainAddress);
-
-    const owner = process.env.PUBLIC_KEY;
-
+    console.log("Deploying to", network);
     console.log("Deploying contracts with", owner);
 
     const standardStorageContractFactory = await hre.ethers.getContractFactory('StandardStorage');
@@ -63,7 +65,7 @@ const main = async () => {
         chainAddress,
         oracleAddress,
         jobId,
-        ethers.utils.parseEther(`${constants.fee}`),
+        fee,
         standardEndpoint,
         { value: hre.ethers.utils.parseEther("0.001") }
     );
@@ -78,7 +80,7 @@ const main = async () => {
         chainAddress,
         oracleAddress,
         jobId,
-        ethers.utils.parseEther(`${constants.fee}`),
+        fee,
         dataEndpoint,
         { value: hre.ethers.utils.parseEther("0.001") }
     );

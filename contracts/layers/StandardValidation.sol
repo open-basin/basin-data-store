@@ -15,8 +15,7 @@ import {StandardStorageLayer} from "./StandardStorage.sol";
 interface StandardValidationLayer {
     function validateAndMintStandard(Models.BasicStandard memory standard)
         external
-        payable
-        returns (bytes32);
+        payable;
 
     function pendingStandardForToken(uint256 token)
         external
@@ -28,6 +27,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     using Counters for Counters.Counter;
     using Chainlink for Chainlink.Request;
     using Models for Models.BasicStandard;
+    using Models for Models.OracleConfiguration;
 
     // Contract owner
     address payable private _contractOwner;
@@ -39,9 +39,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
     address private _standardStorageAddress;
 
     // Chainlink configurations
-    bytes32 private _jobId;
-    uint256 private _fee;
-    string private _endpoint;
+    Models.OracleConfiguration private _configuration;
 
     // Token Ids for pending standards
     Counters.Counter private _tokenIds;
@@ -74,14 +72,17 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         _standardStorageAddress = standardStorageAddress;
 
         setChainlinkToken(link);
-        setChainlinkOracle(oracle);
-        _jobId = jobId;
-        _fee = fee;
-        _endpoint = endpoint;
+
+        _configuration = Models.OracleConfiguration(
+            oracle,
+            jobId,
+            fee,
+            endpoint
+        );
     }
 
     fallback() external {
-        console.log("Transaction failed.");
+        console.log("Standard Validation Transaction failed.");
     }
 
     /// @dev Checks if the signer is the contract owner
@@ -114,6 +115,21 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         _standardStorageAddress = standardStorageAddress;
     }
 
+    /// @dev Changes the chainlink confiugrations
+    function changeChailinkConfiguration(
+        address oracle,
+        bytes32 jobId,
+        uint256 fee,
+        string memory endpoint
+    ) external _onlyOwner {
+        _configuration = Models.OracleConfiguration(
+            oracle,
+            jobId,
+            fee,
+            endpoint
+        );
+    }
+
     // MARK: - Public
 
     function validateAndMintStandard(Models.BasicStandard memory standard)
@@ -121,9 +137,8 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         payable
         override
         _onlySurface
-        returns (bytes32)
     {
-        return _requestStandardValidation(standard);
+        _requestStandardValidation(standard);
     }
 
     function pendingStandardForToken(uint256 token)
@@ -141,10 +156,9 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
 
     function _requestStandardValidation(Models.BasicStandard memory standard)
         private
-        returns (bytes32)
     {
         Chainlink.Request memory request = buildChainlinkRequest(
-            _jobId,
+            _configuration.jobId,
             address(this),
             this.fulfill.selector
         );
@@ -154,10 +168,16 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
 
         _pendingStandards[token] = standard;
 
+        console.log(validatorEndpoint(token, standard.schema));
+
         request.add("get", validatorEndpoint(token, standard.schema));
         request.add("path", "token");
 
-        return sendChainlinkRequest(request, _fee);
+        sendChainlinkRequestTo(
+            _configuration.oracle,
+            request,
+            _configuration.fee
+        );
     }
 
     function fulfill(bytes32 _requestId, uint256 _token)
@@ -189,7 +209,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         return
             string(
                 abi.encodePacked(
-                    _endpoint,
+                    _configuration.endpoint,
                     "?token=",
                     Strings.toString(standardToken),
                     "&schema=",

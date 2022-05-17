@@ -100,7 +100,7 @@ contract DataStorage is DataStorageLayer {
     }
 
     fallback() external {
-        console.log("Transaction failed.");
+        console.log("Data Storage Transaction failed.");
     }
 
     /// @dev Checks if the signer is the contract owner
@@ -356,8 +356,8 @@ contract DataStorage is DataStorageLayer {
         return provider != address(0);
     }
 
-    function _tokenExists(uint256 tokenId) private view returns (bool) {
-        return _dataOwners[tokenId] != address(0);
+    function _tokenExists(uint256 token) private view returns (bool) {
+        return _dataOwners[token] != address(0);
     }
 
     function _isOwner(address owner, uint256 token)
