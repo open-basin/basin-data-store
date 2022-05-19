@@ -103,35 +103,31 @@ contract DataStore {
         address provider,
         uint256 standard,
         string memory payload
-    ) external payable {
+    ) external payable returns (uint256) {
         Models.BasicData memory data = Models.BasicData(
             msg.sender,
             provider,
             standard,
-            Models.encoded(payload),
-            true
+            Models.encoded(payload)
         );
 
-        DataValidationLayer(_dataValidationAddress).validateAndMintData(data);
-
-        return;
+        return DataValidationLayer(_dataValidationAddress).validateAndMintData(data);
     }
 
     function storeStandard(string memory name, string memory schema)
         external
         payable
+        returns (uint256)
     {
         Models.BasicStandard memory standard = Models.BasicStandard(
             msg.sender,
             Models.encoded(name),
-            Models.encoded(schema),
-            true
+            Models.encoded(schema)
         );
 
-        StandardValidationLayer(_standardValidationAddress)
-            .validateAndMintStandard(standard);
 
-        return;
+        return StandardValidationLayer(_standardValidationAddress)
+            .validateAndMintStandard(standard);
     }
 
     function burnData(uint256 token) external {

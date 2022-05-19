@@ -10,18 +10,45 @@ const main = async () => {
 
     console.log("----------------------- Standards");
 
-    // let createStandard = await dataStoreContract.storeStandard("Two", "{Nick", { gasLimit: 3500000 });
-    // await createStandard.wait();
-    // console.log("Created Standard");
+    // let createStandard = await dataStoreContract.storeStandard("Coordinate 2", `{
+    //     "id": "http://json-schema.org/geo",
+    //     "$schema": "http://json-schema.org/draft-06/schema#",
+    //     "description": "A geographical coordinate",
+    //     "type": "object",
+    //     "properties": {
+    //       "latitude": {
+    //         "type": "number"
+    //       },
+    //       "longitude": {
+    //         "type": "number"
+    //       }
+    //     }
+    //   }`, { gasLimit: 3500000 });
+    // const standardToken = await createStandard.wait();
+    // console.log("Created Standard:" + standardToken);
 
-    standards = await dataStoreContract.allStandards();
-    console.log("standards:", utils.structureStandards(standards));
+    // let createStandard = await dataStoreContract.storeStandard("Zero 2", `{}`, { gasLimit: 3500000 });
+    // const standardToken = await createStandard.wait();
+    // console.log("Created Standard:" + standardToken);
+
+    // standards = await dataStoreContract.allStandards();
+    // console.log("standards:", utils.structureStandards(standards));
+
+    const standard = await dataStoreContract.standardForToken(5);
+    console.log("standard 5:", utils.structureStandard(standard));
 
     console.log("----------------------- Data");
 
-    // let createData = await dataStoreContract.storeData(signer, 0, "{}", { gasLimit: 3500000 });
-    // await createData.wait();
-    // console.log("Created Data");
+    // let createData = await dataStoreContract.storeData(signer, 5, `{
+    //     "latitude": 42.0501,
+    //     "longitude": 72.5829
+    // }`, { gasLimit: 3500000 });
+    // const dataToken = await createData.wait();
+    // console.log("Created Data" + dataToken);
+
+    // let createData = await dataStoreContract.storeData(signer, 6, `{}`, { gasLimit: 3500000 });
+    // const dataToken = await createData.wait();
+    // console.log("Created Data" + dataToken);
 
     data = await dataStoreContract.dataForOwner(signer);
     console.log("data:", utils.structureData(data));

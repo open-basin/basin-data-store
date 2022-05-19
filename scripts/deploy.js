@@ -76,7 +76,6 @@ const main = async () => {
     const dataValidationContract = await dataValidationContractFactory.deploy(
         owner,
         dataStorageContract.address,
-        standardStorageContract.address,
         chainAddress,
         oracleAddress,
         jobId,

@@ -8,7 +8,12 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import {Models} from "../libraries/Models.sol";
 
 interface StandardStorageLayer {
-    function mint(Models.BasicStandard memory basicStandard) external payable;
+    function mint(Models.BasicStandard memory basicStandard)
+        external
+        payable
+        returns (uint256);
+
+    function fullfill(uint256 token) external payable;
 
     function standardForToken(uint256 token)
         external
@@ -19,7 +24,7 @@ interface StandardStorageLayer {
 }
 
 interface StandardVisibility {
-    function standardExists(uint256 standardId) external view returns (bool);
+    function standardIsFullfilled(uint256 token) external view returns (bool);
 }
 
 contract StandardStorage is StandardStorageLayer, StandardVisibility {
@@ -42,11 +47,20 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     // Standard Visibility Validation Contract Address
     address private _standardVisibilityValidationAddress;
 
-    // Token Ids for data
+    // Token Ids for standards
     Counters.Counter private _tokenIds;
+
+    // Fullfilled Ids for fullfilled standard
+    Counters.Counter private _fullfilledId;
 
     // Standards map
     mapping(uint256 => Models.Standard) private _standards;
+
+    // Standard Balance
+    mapping(uint256 => uint256) private _standardBalance;
+
+    // Fullfilled Standard map
+    mapping(uint256 => uint256) private _fullfilledStandards;
 
     // Minters of standard map
     mapping(uint256 => address) private _standardMinters;
@@ -68,6 +82,8 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         _standardValidationAddress = standardValidationAddress;
         _standardVisibilityStorageAddress = standardVisibilityStorageAddress;
         _standardVisibilityValidationAddress = standardVisibilityValidationAddress;
+
+        _tokenIds.increment();
     }
 
     fallback() external {
@@ -144,22 +160,26 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         payable
         override
         _onlyValidator
+        returns (uint256)
     {
         Models.Standard memory standard = Models.Standard(
             _tokenIds.current(),
             basicStandard.minter,
             basicStandard.name,
-            basicStandard.schema,
-            true
+            basicStandard.schema
         );
 
         _mintStandard(standard);
 
         _tokenIds.increment();
 
-        emit NewStandard(Models.rawStandard(standard));
+        return standard.token;
+    }
 
-        return;
+    function fullfill(uint256 token) external payable override _onlyValidator {
+        _fullfillStandard(token);
+
+        emit NewStandard(Models.rawStandard(_standards[token]));
     }
 
     function standardForToken(uint256 token)
@@ -169,7 +189,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         _onlySurface
         returns (Models.Standard memory)
     {
-        require(_standardExists(token), "Standard token in invalid");
+        require(_standardIsFufilled(token), "Standard token in invalid");
 
         Models.Standard memory result = _standards[token];
 
@@ -183,11 +203,12 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         _onlySurface
         returns (Models.Standard[] memory)
     {
-        uint256 length = _tokenIds.current();
+        uint256 length = _fullfilledId.current();
         Models.Standard[] memory result = new Models.Standard[](length);
 
         for (uint256 i = 0; i < length; i += 1) {
-            result[i] = Models.rawStandard(_standards[i]);
+            uint256 token = _fullfilledStandards[i];
+            result[i] = Models.rawStandard(_standards[token]);
         }
 
         return result;
@@ -203,19 +224,39 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         _standardMinters[standard.token] = standard.minter;
     }
 
+    /// @dev Fullfills a standard to the contract
+    function _fullfillStandard(uint256 token) private {
+        require(_standardIsPending(token), "Standard is not pending.");
+
+        _fullfilledStandards[_fullfilledId.current()] = token;
+        _fullfilledId.increment();
+
+        _standardBalance[token]++;
+    }
+
     // MARK: - Helpers
 
     function _standardExists(uint256 token) private view returns (bool) {
-        return _standardMinters[token] != address(0);
+        return
+            _standardMinters[token] != address(0) ||
+            _standardBalance[token] != 0;
     }
 
-    function standardExists(uint256 standardId)
+    function _standardIsPending(uint256 token) private view returns (bool) {
+        return _standardBalance[token] == 0;
+    }
+
+    function _standardIsFufilled(uint256 token) private view returns (bool) {
+        return _standardBalance[token] != 0;
+    }
+
+    function standardIsFullfilled(uint256 token)
         external
         view
         override
         _onlyVisibility
         returns (bool)
     {
-        return standardId < _tokenIds.current();
+        return _standardIsFufilled(token);
     }
 }

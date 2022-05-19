@@ -10,7 +10,12 @@ import {Models} from "../libraries/Models.sol";
 import {StandardVisibility} from "./StandardStorage.sol";
 
 interface DataStorageLayer {
-    function mint(Models.BasicData memory basicData) external payable;
+    function mint(Models.BasicData memory basicData)
+        external
+        payable
+        returns (uint256);
+
+    function fullfill(uint256 token) external payable;
 
     function burn(Models.Data memory data) external;
 
@@ -57,8 +62,17 @@ contract DataStorage is DataStorageLayer {
     // Token Ids for data
     Counters.Counter private _tokenIds;
 
+    // Fullfilled Ids for fullfilled data
+    Counters.Counter private _fullfilledId;
+
     // Data map
     mapping(uint256 => Models.Data) private _data;
+
+    // Data Balance
+    mapping(uint256 => uint256) private _dataBalance;
+
+    // Fullfilled Data map
+    mapping(uint256 => uint256) private _fullfilledData;
 
     // Owners of data map
     mapping(uint256 => address) private _dataOwners;
@@ -97,6 +111,8 @@ contract DataStorage is DataStorageLayer {
         _surfaceAddress = surfaceAddress;
         _dataValidationAddress = dataValidationAddress;
         _standardVisibilityAddress = standardVisibilityAddress;
+
+        _tokenIds.increment();
     }
 
     fallback() external {
@@ -157,6 +173,7 @@ contract DataStorage is DataStorageLayer {
         payable
         override
         _onlyValidator
+        returns (uint256)
     {
         Models.Data memory data = Models.Data(
             _tokenIds.current(),
@@ -171,9 +188,13 @@ contract DataStorage is DataStorageLayer {
 
         _tokenIds.increment();
 
-        emit NewData(data);
+        return data.token;
+    }
 
-        return;
+    function fullfill(uint256 token) external payable override _onlyValidator {
+        _fullfillData(token);
+
+        emit NewData(_data[token]);
     }
 
     function burn(Models.Data memory data) external override _onlySurface {
@@ -296,6 +317,17 @@ contract DataStorage is DataStorageLayer {
 
         // Writes data to contract
         _data[data.token] = data;
+    }
+
+    /// @dev Fullfills Data to the contract
+    function _fullfillData(uint256 token) private {
+        require(_dataIsPending(token), "Standard is not pending.");
+
+        Models.Data memory data = _data[token];
+
+        _fullfilledData[_fullfilledId.current()] = token;
+        _fullfilledId.increment();
+
         _dataOwners[data.token] = data.owner;
         _dataStandards[data.token] = data.standard;
 
@@ -303,6 +335,8 @@ contract DataStorage is DataStorageLayer {
         _ownerBalances[data.owner]++;
         _standardBalances[data.standard]++;
         _ownerStandardBalances[data.owner][data.standard]++;
+
+        _dataBalance[token]++;
 
         // Pay bank and provider
     }
@@ -321,6 +355,7 @@ contract DataStorage is DataStorageLayer {
         // Removes owners from data
         delete _dataOwners[data.token];
         delete _dataStandards[data.token];
+        delete _dataBalance[data.token];
     }
 
     // MARK: - Transfer methods
@@ -344,7 +379,7 @@ contract DataStorage is DataStorageLayer {
         return
             _validOwner(data.owner) &&
             _validProvider(data.provider) &&
-            !_tokenExists(data.token) &&
+            !_dataExists(data.token) &&
             _standardExists(data.standard);
     }
 
@@ -368,10 +403,22 @@ contract DataStorage is DataStorageLayer {
         return owner == _dataOwners[token];
     }
 
-    function _standardExists(uint256 standardId) private view returns (bool) {
+    function _dataExists(uint256 token) private view returns (bool) {
+        return _dataOwners[token] != address(0) || _dataBalance[token] > 0;
+    }
+
+    function _dataIsPending(uint256 token) private view returns (bool) {
+        return _dataBalance[token] == 0;
+    }
+
+    function _dataIsFufilled(uint256 token) private view returns (bool) {
+        return _dataBalance[token] != 0;
+    }
+
+    function _standardExists(uint256 token) private view returns (bool) {
         return
-            StandardVisibility(_standardVisibilityAddress).standardExists(
-                standardId
+            StandardVisibility(_standardVisibilityAddress).standardIsFullfilled(
+                token
             );
     }
 }

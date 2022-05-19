@@ -18,14 +18,23 @@ const structureData = (data) => {
     });
 }
 
+const structureStandard = (standard) => {
+    return {
+        token: standard.token.toNumber(),
+        minter: standard.minter,
+        name: standard.name,
+        schema: standard.schema
+    };
+}
+
+
 const structureStandards = (standards) => {
     return standards.map(standard => {
         return {
             token: standard.token.toNumber(),
             minter: standard.minter,
             name: standard.name,
-            schema: standard.schema,
-            exists: standard.exists
+            schema: standard.schema
         };
     });
 }
@@ -33,6 +42,7 @@ const structureStandards = (standards) => {
 const utils = {
     structureData,
     structureStandards,
+    structureStandard,
     shrinkAddress
 }
 

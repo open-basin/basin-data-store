@@ -11,7 +11,6 @@ library Models {
         address provider;
         uint256 standard;
         string payload;
-        bool exists;
     }
 
     // Data structure
@@ -29,7 +28,6 @@ library Models {
         address minter;
         string name;
         string schema;
-        bool exists;
     }
 
     // Standard structure
@@ -38,7 +36,6 @@ library Models {
         address minter;
         string name;
         string schema;
-        bool exists;
     }
 
     // Oracle Configuration structure
@@ -59,8 +56,7 @@ library Models {
             standard.token,
             standard.minter,
             decoded(standard.name),
-            decoded(standard.schema),
-            standard.exists
+            decoded(standard.schema)
         );
 
         return newStandard;
@@ -89,8 +85,7 @@ library Models {
         BasicStandard memory newStandard = BasicStandard(
             standard.minter,
             decoded(standard.name),
-            decoded(standard.schema),
-            standard.exists
+            decoded(standard.schema)
         );
 
         return newStandard;
@@ -106,8 +101,7 @@ library Models {
             data.owner,
             data.provider,
             data.standard,
-            decoded(data.payload),
-            data.exists
+            decoded(data.payload)
         );
 
         return newData;

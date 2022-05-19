@@ -14,12 +14,7 @@ import {DataStorageLayer} from "./DataStorage.sol";
 import {StandardVisibility} from "./StandardStorage.sol";
 
 interface DataValidationLayer {
-    function validateAndMintData(Models.BasicData memory data) external payable;
-
-    function pendingDataForToken(uint256 token)
-        external
-        view
-        returns (Models.BasicData memory);
+    function validateAndMintData(Models.BasicData memory data) external payable returns (uint256);
 }
 
 contract DataValidation is DataValidationLayer, ChainlinkClient {
@@ -37,40 +32,24 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     // Data Storage Contract Address
     address private _dataStorageAddress;
 
-    // Standard Visibiliy Contract Address
-    address private _standardVisibilityAddress;
-
     // Chainlink configurations
     Models.OracleConfiguration private _configuration;
-
-    // Token Ids for pending data
-    Counters.Counter private _tokenIds;
-
-    // Pending Data map
-    mapping(uint256 => Models.BasicData) private _pendingData;
-
-    // New pending data event
-    event NewPendingData(Models.BasicData data);
 
     // Constructor
     constructor(
         address surfaceAddress,
         address dataStorageAddress,
-        address standardVisibilityAddress,
         address link,
         address oracle,
         bytes32 jobId,
         uint256 fee,
         string memory endpoint
     ) payable {
-        _tokenIds.increment();
-
         console.log("DataValidation contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
 
         _surfaceAddress = surfaceAddress;
         _dataStorageAddress = dataStorageAddress;
-        _standardVisibilityAddress = standardVisibilityAddress;
 
         setChainlinkToken(link);
 
@@ -116,14 +95,6 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         _dataStorageAddress = dataStorageAddress;
     }
 
-    /// @dev Changes the standard visibility contract address
-    function changeStandardVisibilityAddress(address standardVisibilityAddress)
-        external
-        _onlyOwner
-    {
-        _standardVisibilityAddress = standardVisibilityAddress;
-    }
-
     /// @dev Changes the chainlink confiugrations
     function changeChailinkConfiguration(
         address oracle,
@@ -146,36 +117,23 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         payable
         override
         _onlySurface
+        returns (uint256)
     {
-        _requestDataValidation(data);
-    }
+        uint256 token = DataStorageLayer(_dataStorageAddress).mint(data);
 
-    function pendingDataForToken(uint256 token)
-        external
-        view
-        override
-        returns (Models.BasicData memory)
-    {
-        require(tokenExists(token), "Pending Token does not exist");
+        _requestDataValidation(data, token);
 
-        return _pendingData[token];
+        return token;
     }
 
     // MARK: - Chainlink integration
 
-    function _requestDataValidation(Models.BasicData memory data) private {
-        require(_isValidData(data), "Data is invalid");
-
+    function _requestDataValidation(Models.BasicData memory data, uint256 token) private {
         Chainlink.Request memory request = buildChainlinkRequest(
             _configuration.jobId,
             address(this),
             this.fulfill.selector
         );
-
-        uint256 token = _tokenIds.current();
-        _tokenIds.increment();
-
-        _pendingData[token] = data;
 
         request.add(
             "get",
@@ -191,17 +149,12 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
     }
 
     function fulfill(bytes32 _requestId, uint256 _token)
-        public
+        external
         recordChainlinkFulfillment(_requestId)
     {
         require(responseIsValid(_token), "Data Validator denied transaction");
-        require(tokenExists(_token), "Pending Data ID does not exist");
 
-        DataStorageLayer(_dataStorageAddress).mint(_pendingData[_token]);
-
-        delete _pendingData[_token];
-
-        return;
+        DataStorageLayer(_dataStorageAddress).fullfill(_token);
     }
 
     // MARK: - Helpers
@@ -225,39 +178,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
             );
     }
 
-    // MARK: - Helpers
-
-    function tokenExists(uint256 token) private view returns (bool) {
-        return _pendingData[token].exists;
-    }
-
-    function _isValidData(Models.BasicData memory data)
-        private
-        view
-        returns (bool)
-    {
-        return
-            _validOwner(data.owner) &&
-            _validProvider(data.provider) &&
-            _standardExists(data.standard);
-    }
-
-    function _validOwner(address owner) private pure returns (bool) {
-        return owner != address(0);
-    }
-
-    function _validProvider(address provider) private pure returns (bool) {
-        return provider != address(0);
-    }
-
     function responseIsValid(uint256 respone) private pure returns (bool) {
         return respone > 0;
-    }
-
-    function _standardExists(uint256 standardId) private view returns (bool) {
-        return
-            StandardVisibility(_standardVisibilityAddress).standardExists(
-                standardId
-            );
     }
 }
