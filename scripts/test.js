@@ -50,7 +50,10 @@ const main = async () => {
     // const dataToken = await createData.wait();
     // console.log("Created Data" + dataToken);
 
-    data = await dataStoreContract.dataForOwner(signer);
+    // data = await dataStoreContract.dataForOwner(signer);
+    // console.log("data:", utils.structureData(data));
+
+    data = await dataStoreContract.dataForOwnerInStandard(signer, 1);
     console.log("data:", utils.structureData(data));
 };
 

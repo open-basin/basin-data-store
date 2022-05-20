@@ -299,7 +299,7 @@ contract DataStorage is DataStorageLayer {
         Models.Data[] memory result = new Models.Data[](balance);
 
         uint256 counter = 0;
-        for (uint256 i = 0; i < balance; i += 1) {
+        for (uint256 i = 0; i < _tokenIds.current() && counter < balance; i += 1) {
             if (owner == _dataOwners[i] && standard == _dataStandards[i]) {
                 result[counter] = Models.rawData(_data[i]);
                 counter++;
