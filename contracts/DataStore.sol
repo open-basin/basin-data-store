@@ -20,6 +20,18 @@ contract DataStore {
     // Contract owner
     address payable private _contractOwner;
 
+    // Contract bank
+    address payable private _bank;
+
+    // Standard Fee
+    uint256 private _standardFee;
+
+    // Data Fee
+    uint256 private _dataFee;
+
+    // Provider Fee
+    uint256 private _providerFee;
+
     // Data Storage Contract Address
     address private _dataStorageAddress;
 
@@ -60,9 +72,27 @@ contract DataStore {
         _;
     }
 
+       // @dev Checks if the signer is the contract bank
+    modifier _onlyBank() {
+        require(msg.sender == _bank, "Must be bank.");
+        _;
+    }
+
     /// @dev Changes contract owner
     function changeOwner(address payable newOwner) external _onlyOwner {
         _contractOwner = newOwner;
+    }
+
+    /// @dev Changes contract bank
+    function changeBank(address payable newBank) external _onlyOwner {
+        _bank = newBank;
+    }
+
+    /// @dev Changes contract fees
+    function changeFees(uint256 standardFee, uint256 dataFee, uint256 providerFee) external _onlyOwner {
+        _standardFee = standardFee;
+        _dataFee = dataFee;
+        _providerFee = providerFee;
     }
 
     /// @dev Changes the data storage contract address
@@ -104,6 +134,9 @@ contract DataStore {
         uint256 standard,
         string memory payload
     ) external payable returns (uint256) {
+        require(msg.value >= (_providerFee + _dataFee), "Must have value");
+        require(bytes(payload).length > 0, "Payload is empty.");
+
         Models.BasicData memory data = Models.BasicData(
             msg.sender,
             provider,
@@ -111,7 +144,13 @@ contract DataStore {
             Models.encoded(payload)
         );
 
-        return DataValidationLayer(_dataValidationAddress).validateAndMintData(data);
+        uint256 token = DataValidationLayer(_dataValidationAddress).validateAndMintData(data);
+
+        // Pay bank and provider
+        _distribute(payable(data.provider), _providerFee);
+        _distribute(_bank, _dataFee);
+
+        return token;
     }
 
     function storeStandard(string memory name, string memory schema)
@@ -119,15 +158,22 @@ contract DataStore {
         payable
         returns (uint256)
     {
+        require(msg.value >= _standardFee, "Must have value");
+        require(bytes(schema).length > 0, "Schema is empty.");
+
         Models.BasicStandard memory standard = Models.BasicStandard(
             msg.sender,
             Models.encoded(name),
             Models.encoded(schema)
         );
 
-
-        return StandardValidationLayer(_standardValidationAddress)
+        uint256 token = StandardValidationLayer(_standardValidationAddress)
             .validateAndMintStandard(standard);
+
+        // Pay bank
+        _distribute(_bank, _standardFee);
+
+        return token;
     }
 
     function burnData(uint256 token) external {
@@ -197,6 +243,18 @@ contract DataStore {
     function allStandards() external view returns (Models.Standard[] memory) {
         return StandardStorageLayer(_standardStorageAddress).allStandards();
     }
+
+    // MARK: - Distribute Methods
+
+    function _distribute(address payable to, uint256 amount) private {
+        require(msg.value > 0);
+        to.transfer(amount);
+    }
+
+    function _collect(uint256 amount) external _onlyBank {
+        _bank.transfer(amount);
+    }
+
 
     // MARK: - Helpers
 

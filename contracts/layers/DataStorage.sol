@@ -337,8 +337,6 @@ contract DataStorage is DataStorageLayer {
         _ownerStandardBalances[data.owner][data.standard]++;
 
         _dataBalance[token]++;
-
-        // Pay bank and provider
     }
 
     /// @dev Burns data from contract

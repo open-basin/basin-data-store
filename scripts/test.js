@@ -5,6 +5,11 @@ const main = async () => {
     const dataStoreContract = await hre.ethers.getContractAt('DataStore', process.env.CURRENT_CONTRACT);
     const signer = process.env.PUBLIC_KEY;
 
+    let setBank = await dataStoreContract.changeFees(hre.ethers.utils.parseEther("0.00002"), hre.ethers.utils.parseEther("0.00001"), hre.ethers.utils.parseEther("0.00001"));
+    await setBank.wait();
+
+    console.log("Set up Bank");
+
     var standards = [];
     var data = [];
 
@@ -23,19 +28,19 @@ const main = async () => {
     //         "type": "number"
     //       }
     //     }
-    //   }`, { gasLimit: 3500000 });
+    //   }`, { gasLimit: 3500000, value: 200 });
     // const standardToken = await createStandard.wait();
     // console.log("Created Standard:" + standardToken);
 
-    // let createStandard = await dataStoreContract.storeStandard("Zero 2", `{}`, { gasLimit: 3500000 });
+    // let createStandard = await dataStoreContract.storeStandard("Zero", `{}`, { gasLimit: 3500000, value: hre.ethers.utils.parseEther("0.00002") } );
     // const standardToken = await createStandard.wait();
     // console.log("Created Standard:" + standardToken);
 
     // standards = await dataStoreContract.allStandards();
     // console.log("standards:", utils.structureStandards(standards));
 
-    const standard = await dataStoreContract.standardForToken(5);
-    console.log("standard 5:", utils.structureStandard(standard));
+    // const standard = await dataStoreContract.standardForToken(5);
+    // console.log("standard 5:", utils.structureStandard(standard));
 
     console.log("----------------------- Data");
 
@@ -46,15 +51,15 @@ const main = async () => {
     // const dataToken = await createData.wait();
     // console.log("Created Data" + dataToken);
 
-    // let createData = await dataStoreContract.storeData(signer, 6, `{}`, { gasLimit: 3500000 });
+    // let createData = await dataStoreContract.storeData(signer, 1, `{}`, { gasLimit: 3500000, value: hre.ethers.utils.parseEther("0.0001") } );
     // const dataToken = await createData.wait();
     // console.log("Created Data" + dataToken);
 
-    // data = await dataStoreContract.dataForOwner(signer);
-    // console.log("data:", utils.structureData(data));
-
-    data = await dataStoreContract.dataForOwnerInStandard(signer, 1);
+    data = await dataStoreContract.dataForOwner(signer);
     console.log("data:", utils.structureData(data));
+
+    // data = await dataStoreContract.dataForOwnerInStandard(signer, 1);
+    // console.log("data:", utils.structureData(data));
 };
 
 const runMain = async () => {

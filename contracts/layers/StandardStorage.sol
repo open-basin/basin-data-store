@@ -233,7 +233,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
 
         _standardBalance[token]++;
     }
-
+    
     // MARK: - Helpers
 
     function _standardExists(uint256 token) private view returns (bool) {

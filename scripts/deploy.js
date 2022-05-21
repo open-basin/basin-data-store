@@ -5,6 +5,7 @@ const { constants } = require("./utils/constants.js");
 const main = async () => {
     const network = process.env.NETWORK;
     const owner = process.env.PUBLIC_KEY;
+    const bank = "0x4024Cc01550ae7BDA872767f371F6EacDE6C3B5e"
 
     var chainAddress = "";
     var oracleAddress = "";
@@ -97,6 +98,10 @@ const main = async () => {
     await dataStoreContract.deployed();
     console.log("Data Store contract deployed to:", dataStoreContract.address);
 
+    let setBank = await dataStoreContract.changeBank(bank);
+    await setBank.wait();
+
+    console.log("Set up Bank");
 
     let setStandardStorageSurface = await standardStorageContract.changeSurfaceAddress(dataStoreContract.address);
     await setStandardStorageSurface.wait();
