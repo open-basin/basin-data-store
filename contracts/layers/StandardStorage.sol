@@ -21,6 +21,11 @@ interface StandardStorageLayer {
         returns (Models.Standard memory);
 
     function allStandards() external view returns (Models.Standard[] memory);
+
+    function standardsForMinter(address minter)
+        external
+        view
+        returns (Models.Standard[] memory);
 }
 
 interface StandardVisibility {
@@ -44,9 +49,6 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     // Standard Visibility Storage Contract Address
     address private _standardVisibilityStorageAddress;
 
-    // Standard Visibility Validation Contract Address
-    address private _standardVisibilityValidationAddress;
-
     // Token Ids for standards
     Counters.Counter private _tokenIds;
 
@@ -56,8 +58,11 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     // Standards map
     mapping(uint256 => Models.Standard) private _standards;
 
-    // Standard Balance
-    mapping(uint256 => uint256) private _standardBalance;
+    // // Mapping standard to token count
+    mapping(uint256 => uint256) private _standardBalances;
+
+    // Mapping minter address to token count
+    mapping(address => uint256) private _minterBalances;
 
     // Fullfilled Standard map
     mapping(uint256 => uint256) private _fullfilledStandards;
@@ -72,16 +77,14 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     constructor(
         address surfaceAddress,
         address standardValidationAddress,
-        address standardVisibilityStorageAddress,
-        address standardVisibilityValidationAddress
+        address standardVisibilityStorageAddress
     ) payable {
-        console.log("StandardStorage contract constructed by %s", msg.sender);
+        console.log("Standard Storage contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
 
         _surfaceAddress = surfaceAddress;
         _standardValidationAddress = standardValidationAddress;
         _standardVisibilityStorageAddress = standardVisibilityStorageAddress;
-        _standardVisibilityValidationAddress = standardVisibilityValidationAddress;
 
         _tokenIds.increment();
     }
@@ -119,8 +122,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     /// @dev Checks if the signer is the contract's standard visibility address
     modifier _onlyVisibility() {
         require(
-            msg.sender == _standardVisibilityStorageAddress ||
-                msg.sender == _standardVisibilityValidationAddress,
+            msg.sender == _standardVisibilityStorageAddress,
             "Must be contract's visibility address"
         );
         _;
@@ -146,14 +148,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         _standardVisibilityStorageAddress = standardVisibilityStorageAddress;
     }
 
-    /// @dev Changes the standard visibility validation contract address
-    function changeStandardVisibilityValidationAddress(
-        address standardVisibilityValidationAddress
-    ) external _onlyOwner {
-        _standardVisibilityValidationAddress = standardVisibilityValidationAddress;
-    }
-
-    // MARK: - External
+    // MARK: - External Write Methods
 
     function mint(Models.BasicStandard memory basicStandard)
         external
@@ -181,6 +176,8 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
 
         emit NewStandard(Models.rawStandard(_standards[token]));
     }
+
+    // MARK: - Fetch Methods
 
     function standardForToken(uint256 token)
         external
@@ -214,11 +211,41 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         return result;
     }
 
+    function standardsForMinter(address minter)
+        external
+        view
+        override
+        _onlySurface
+        returns (Models.Standard[] memory)
+    {
+        require(_validAddress(minter), "Minter is not valid.");
+
+        uint256 balance = _minterBalances[minter];
+        Models.Standard[] memory result = new Models.Standard[](balance);
+
+        uint256 counter = 0;
+        for (
+            uint256 i = 0;
+            i < _tokenIds.current() && counter < balance;
+            i += 1
+        ) {
+            if (minter == _standardMinters[i]) {
+                result[counter] = Models.rawStandard(_standards[i]);
+                counter++;
+            }
+        }
+
+        return result;
+    }
+
     // MARK: - Minter
 
     /// @dev Mints a standard to the contract
     function _mintStandard(Models.Standard memory standard) private {
         require(!_standardExists(standard.token), "Standard already exists.");
+        require(bytes(standard.schema).length > 0, "Schema is empty.");
+        require(bytes(standard.name).length > 0, "Name is empty.");
+        require(_validAddress(tx.origin), "Minter is invalid.");
 
         _standards[standard.token] = standard;
         _standardMinters[standard.token] = standard.minter;
@@ -231,23 +258,36 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         _fullfilledStandards[_fullfilledId.current()] = token;
         _fullfilledId.increment();
 
-        _standardBalance[token]++;
+        _standardBalances[token]++;
+        _minterBalances[_standards[token].minter]++;
     }
-    
+
     // MARK: - Helpers
+
+    function _validAddress(address adr) private pure returns (bool) {
+        return adr != address(0);
+    }
+
+    function _isMinter(address minter, uint256 token)
+        private
+        view
+        returns (bool)
+    {
+        return minter == _standardMinters[token];
+    }
 
     function _standardExists(uint256 token) private view returns (bool) {
         return
             _standardMinters[token] != address(0) ||
-            _standardBalance[token] != 0;
+            _standardBalances[token] != 0;
     }
 
     function _standardIsPending(uint256 token) private view returns (bool) {
-        return _standardBalance[token] == 0;
+        return _standardBalances[token] == 0;
     }
 
     function _standardIsFufilled(uint256 token) private view returns (bool) {
-        return _standardBalance[token] != 0;
+        return _standardBalances[token] != 0;
     }
 
     function standardIsFullfilled(uint256 token)

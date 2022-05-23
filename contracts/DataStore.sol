@@ -31,6 +31,9 @@ contract DataStore {
 
     // Provider Fee
     uint256 private _providerFee;
+    
+    // Transfer Fee
+    uint256 private _transferFee;
 
     // Data Storage Contract Address
     address private _dataStorageAddress;
@@ -72,7 +75,7 @@ contract DataStore {
         _;
     }
 
-       // @dev Checks if the signer is the contract bank
+    // @dev Checks if the signer is the contract bank
     modifier _onlyBank() {
         require(msg.sender == _bank, "Must be bank.");
         _;
@@ -89,9 +92,15 @@ contract DataStore {
     }
 
     /// @dev Changes contract fees
-    function changeFees(uint256 standardFee, uint256 dataFee, uint256 providerFee) external _onlyOwner {
+    function changeFees(
+        uint256 standardFee,
+        uint256 dataFee,
+        uint256 transferFee,
+        uint256 providerFee
+    ) external _onlyOwner {
         _standardFee = standardFee;
         _dataFee = dataFee;
+        _transferFee = transferFee;
         _providerFee = providerFee;
     }
 
@@ -135,7 +144,6 @@ contract DataStore {
         string memory payload
     ) external payable returns (uint256) {
         require(msg.value >= (_providerFee + _dataFee), "Must have value");
-        require(bytes(payload).length > 0, "Payload is empty.");
 
         Models.BasicData memory data = Models.BasicData(
             msg.sender,
@@ -144,7 +152,8 @@ contract DataStore {
             Models.encoded(payload)
         );
 
-        uint256 token = DataValidationLayer(_dataValidationAddress).validateAndMintData(data);
+        uint256 token = DataValidationLayer(_dataValidationAddress)
+            .validateAndMintData(data);
 
         // Pay bank and provider
         _distribute(payable(data.provider), _providerFee);
@@ -153,13 +162,12 @@ contract DataStore {
         return token;
     }
 
-    function storeStandard(string memory name, string memory schema)
+    function createStandard(string memory name, string memory schema)
         external
         payable
         returns (uint256)
     {
-        require(msg.value >= _standardFee, "Must have value");
-        require(bytes(schema).length > 0, "Schema is empty.");
+        require(msg.value >= _standardFee, "Must have value.");
 
         Models.BasicStandard memory standard = Models.BasicStandard(
             msg.sender,
@@ -176,19 +184,20 @@ contract DataStore {
         return token;
     }
 
-    function burnData(uint256 token) external {
+    function burnData(uint256 token) external payable {
         Models.Data memory data = DataStorageLayer(_dataStorageAddress)
             .dataForToken(token);
 
         DataStorageLayer(_dataStorageAddress).burn(data);
-
-        return;
     }
 
-    function transferData(uint256 token, address to) external {
+    function transferData(uint256 token, address to) external payable {
+        require(msg.value >= _transferFee, "Must have value");
+
         DataStorageLayer(_dataStorageAddress).transfer(token, to);
 
-        return;
+        // Pay bank and provider
+        _distribute(_bank, _transferFee);
     }
 
     // MARK: - External Fetch Methods
@@ -207,6 +216,14 @@ contract DataStore {
         returns (Models.Data[] memory)
     {
         return DataStorageLayer(_dataStorageAddress).dataForOwner(owner);
+    }
+
+    function dataForProvider(address provider)
+        external
+        view
+        returns (Models.Data[] memory)
+    {
+        return DataStorageLayer(_dataStorageAddress).dataForProvider(provider);
     }
 
     function dataForStandard(uint256 standard)
@@ -244,6 +261,17 @@ contract DataStore {
         return StandardStorageLayer(_standardStorageAddress).allStandards();
     }
 
+    function standardsForMinter(address minter)
+        external
+        view
+        returns (Models.Standard[] memory)
+    {
+        return
+            StandardStorageLayer(_standardStorageAddress).standardsForMinter(
+                minter
+            );
+    }
+
     // MARK: - Distribute Methods
 
     function _distribute(address payable to, uint256 amount) private {
@@ -254,7 +282,6 @@ contract DataStore {
     function _collect(uint256 amount) external _onlyBank {
         _bank.transfer(amount);
     }
-
 
     // MARK: - Helpers
 

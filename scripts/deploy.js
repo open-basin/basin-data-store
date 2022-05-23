@@ -38,9 +38,10 @@ const main = async () => {
     console.log("Deploying to", network);
     console.log("Deploying contracts with", owner);
 
+    console.log("-----------------------");
+
     const standardStorageContractFactory = await hre.ethers.getContractFactory('StandardStorage');
     const standardStorageContract = await standardStorageContractFactory.deploy(
-        owner,
         owner,
         owner,
         owner,
@@ -97,9 +98,17 @@ const main = async () => {
     );
     await dataStoreContract.deployed();
     console.log("Data Store contract deployed to:", dataStoreContract.address);
+    
+    console.log("-----------------------");
 
     let setBank = await dataStoreContract.changeBank(bank);
     await setBank.wait();
+
+    let setBankFees = await dataStoreContract.changeFees(hre.ethers.utils.parseEther("0.00002"),
+        hre.ethers.utils.parseEther("0.00001"),
+        hre.ethers.utils.parseEther("0.00001"),
+        hre.ethers.utils.parseEther("0.00001"));
+    await setBankFees.wait();
 
     console.log("Set up Bank");
 
@@ -111,9 +120,6 @@ const main = async () => {
 
     let setStandardStorageVisibilityStorage = await standardStorageContract.changeStandardVisibilityStorageAddress(dataStorageContract.address);
     await setStandardStorageVisibilityStorage.wait();
-
-    let setStandardStorageVisibilityValidation = await standardStorageContract.changeStandardVisibilityValidationAddress(dataValidationContract.address);
-    await setStandardStorageVisibilityValidation.wait();
 
     console.log("Set up Standard Storage");
 
@@ -135,7 +141,9 @@ const main = async () => {
 
     console.log("Set up Data Validation");
 
+    console.log("-----------------------");
     console.log("All Contracts deployed");
+    console.log("-----------------------");
 };
 
 

@@ -50,7 +50,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         string memory endpoint
     ) payable {
         console.log(
-            "StandardValidation contract constructed by %s",
+            "Standard Validation contract constructed by %s",
             msg.sender
         );
         _contractOwner = payable(msg.sender);

@@ -11,7 +11,6 @@ import {Base64} from "../libraries/Base64.sol";
 import {Models} from "../libraries/Models.sol";
 
 import {DataStorageLayer} from "./DataStorage.sol";
-import {StandardVisibility} from "./StandardStorage.sol";
 
 interface DataValidationLayer {
     function validateAndMintData(Models.BasicData memory data) external payable returns (uint256);
@@ -45,7 +44,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         uint256 fee,
         string memory endpoint
     ) payable {
-        console.log("DataValidation contract constructed by %s", msg.sender);
+        console.log("Data Validation contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
 
         _surfaceAddress = surfaceAddress;

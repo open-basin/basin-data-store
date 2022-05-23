@@ -40,6 +40,8 @@ interface DataStorageLayer {
         external
         view
         returns (Models.Data[] memory);
+        
+    function dataForProvider(address provider) external view returns (Models.Data[] memory);
 }
 
 contract DataStorage is DataStorageLayer {
@@ -83,6 +85,9 @@ contract DataStorage is DataStorageLayer {
     // Mapping owner address to token count
     mapping(address => uint256) private _ownerBalances;
 
+    // Mapping provider address to token count
+    mapping(address => uint256) private _providerBalances;
+
     // Mapping standard address to token count
     mapping(uint256 => uint256) private _standardBalances;
 
@@ -105,7 +110,7 @@ contract DataStorage is DataStorageLayer {
         address dataValidationAddress,
         address standardVisibilityAddress
     ) payable {
-        console.log("DataStorage contract constructed by %s", msg.sender);
+        console.log("Data Storage contract constructed by %s", msg.sender);
         _contractOwner = payable(msg.sender);
 
         _surfaceAddress = surfaceAddress;
@@ -238,7 +243,7 @@ contract DataStorage is DataStorageLayer {
         _onlySurface
         returns (Models.Data[] memory)
     {
-        require(_validOwner(owner), "Owner is not valid.");
+        require(_validAddress(owner), "Owner is not valid.");
 
         uint256 balance = _ownerBalances[owner];
         Models.Data[] memory result = new Models.Data[](balance);
@@ -292,7 +297,7 @@ contract DataStorage is DataStorageLayer {
         _onlySurface
         returns (Models.Data[] memory)
     {
-        require(_validOwner(owner), "Owner is not valid.");
+        require(_validAddress(owner), "Owner is not valid.");
         require(_standardExists(standard), "Standard does not exist.");
 
         uint256 balance = _ownerStandardBalances[owner][standard];
@@ -301,6 +306,27 @@ contract DataStorage is DataStorageLayer {
         uint256 counter = 0;
         for (uint256 i = 0; i < _tokenIds.current() && counter < balance; i += 1) {
             if (owner == _dataOwners[i] && standard == _dataStandards[i]) {
+                result[counter] = Models.rawData(_data[i]);
+                counter++;
+            }
+        }
+
+        return result;
+    }
+
+    function dataForProvider(address provider) external view override _onlySurface returns (Models.Data[] memory) {
+        require(_validAddress(provider), "Provider is not valid.");
+
+        uint256 balance = _providerBalances[provider];
+        Models.Data[] memory result = new Models.Data[](balance);
+
+        uint256 counter = 0;
+        for (
+            uint256 i = 0;
+            i < _tokenIds.current() && counter < balance;
+            i += 1
+        ) {
+            if (provider == _data[i].provider) {
                 result[counter] = Models.rawData(_data[i]);
                 counter++;
             }
@@ -333,6 +359,7 @@ contract DataStorage is DataStorageLayer {
 
         // Increments balances
         _ownerBalances[data.owner]++;
+        _providerBalances[data.provider]++;
         _standardBalances[data.standard]++;
         _ownerStandardBalances[data.owner][data.standard]++;
 
@@ -342,8 +369,8 @@ contract DataStorage is DataStorageLayer {
     /// @dev Burns data from contract
     function _burnData(Models.Data memory data) private {
         require(_tokenExists(data.token), "Data is invalid.");
-        require(_validOwner(msg.sender), "Owner address is invalid.");
-        require(_isOwner(msg.sender, data.token), "Owner is invalid.");
+        require(_validAddress(tx.origin), "Owner address is invalid.");
+        require(_isOwner(tx.origin, data.token), "Owner is invalid.");
 
         // Increments balances
         _ownerBalances[data.owner]--;
@@ -360,29 +387,30 @@ contract DataStorage is DataStorageLayer {
 
     function _transferData(uint256 token, address to) private {
         require(_tokenExists(token), "Data does not exists.");
-        require(_validOwner(msg.sender), "Owner address is invalid.");
-        require(_isOwner(msg.sender, token), "Owner is invalid.");
-        require(_validOwner(to), "Destination address is invalid.");
+        require(_validAddress(tx.origin), "Owner address is invalid.");
+        require(_isOwner(tx.origin, token), "Owner is invalid.");
+        require(_validAddress(to), "Destination address is invalid.");
 
         _data[token].owner = to;
         _dataOwners[token] = to;
 
         _ownerBalances[to]++;
-        _ownerBalances[msg.sender]--;
+        _ownerBalances[tx.origin]--;
     }
 
     // MARK: - Helpers
 
     function _isValidData(Models.Data memory data) private view returns (bool) {
         return
-            _validOwner(data.owner) &&
+            _validAddress(data.owner) &&
+            bytes(data.payload).length > 0 &&
             _validProvider(data.provider) &&
             !_dataExists(data.token) &&
             _standardExists(data.standard);
     }
 
-    function _validOwner(address owner) private pure returns (bool) {
-        return owner != address(0);
+    function _validAddress(address adr) private pure returns (bool) {
+        return adr != address(0);
     }
 
     function _validProvider(address provider) private pure returns (bool) {
