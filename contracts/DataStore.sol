@@ -31,7 +31,7 @@ contract DataStore {
 
     // Provider Fee
     uint256 private _providerFee;
-    
+
     // Transfer Fee
     uint256 private _transferFee;
 
@@ -65,6 +65,7 @@ contract DataStore {
         _standardValidationAddress = standardValidationAddress;
     }
 
+    /// @dev Contract fallback method
     fallback() external {
         console.log("DataStore Transaction failed.");
     }
@@ -138,6 +139,30 @@ contract DataStore {
 
     // MARK: - External Storage Methods
 
+    /// @dev Creates a new standard in standard storage
+    function createStandard(string memory name, string memory schema)
+        external
+        payable
+        returns (uint256)
+    {
+        require(msg.value >= _standardFee, "Must have value.");
+
+        Models.BasicStandard memory standard = Models.BasicStandard(
+            msg.sender,
+            Models.encoded(name),
+            Models.encoded(schema)
+        );
+
+        uint256 token = StandardValidationLayer(_standardValidationAddress)
+            .validateAndMintStandard(standard);
+
+        // Pay bank
+        _distribute(_bank, _standardFee);
+
+        return token;
+    }
+
+    /// @dev Stores a data in data storage
     function storeData(
         address provider,
         uint256 standard,
@@ -162,28 +187,7 @@ contract DataStore {
         return token;
     }
 
-    function createStandard(string memory name, string memory schema)
-        external
-        payable
-        returns (uint256)
-    {
-        require(msg.value >= _standardFee, "Must have value.");
-
-        Models.BasicStandard memory standard = Models.BasicStandard(
-            msg.sender,
-            Models.encoded(name),
-            Models.encoded(schema)
-        );
-
-        uint256 token = StandardValidationLayer(_standardValidationAddress)
-            .validateAndMintStandard(standard);
-
-        // Pay bank
-        _distribute(_bank, _standardFee);
-
-        return token;
-    }
-
+    /// @dev Burns data from storage
     function burnData(uint256 token) external payable {
         Models.Data memory data = DataStorageLayer(_dataStorageAddress)
             .dataForToken(token);
@@ -191,17 +195,19 @@ contract DataStore {
         DataStorageLayer(_dataStorageAddress).burn(data);
     }
 
+    /// @dev Transfers data to address
     function transferData(uint256 token, address to) external payable {
         require(msg.value >= _transferFee, "Must have value");
 
         DataStorageLayer(_dataStorageAddress).transfer(token, to);
 
-        // Pay bank and provider
+        // Pay bank
         _distribute(_bank, _transferFee);
     }
 
     // MARK: - External Fetch Methods
 
+    /// @dev Fetches data for a token
     function dataForToken(uint256 token)
         external
         view
@@ -210,6 +216,7 @@ contract DataStore {
         return DataStorageLayer(_dataStorageAddress).dataForToken(token);
     }
 
+    /// @dev Fetches all data for an owner
     function dataForOwner(address owner)
         external
         view
@@ -218,6 +225,7 @@ contract DataStore {
         return DataStorageLayer(_dataStorageAddress).dataForOwner(owner);
     }
 
+    /// @dev Fetches all data for a provider
     function dataForProvider(address provider)
         external
         view
@@ -226,6 +234,7 @@ contract DataStore {
         return DataStorageLayer(_dataStorageAddress).dataForProvider(provider);
     }
 
+    /// @dev Fetches all data for a standard
     function dataForStandard(uint256 standard)
         external
         view
@@ -234,6 +243,7 @@ contract DataStore {
         return DataStorageLayer(_dataStorageAddress).dataForStandard(standard);
     }
 
+    /// @dev Fetches all data for an owner in a standard
     function dataForOwnerInStandard(address owner, uint256 standard)
         external
         view
@@ -246,6 +256,7 @@ contract DataStore {
             );
     }
 
+    /// @dev Fetches standard for a token
     function standardForToken(uint256 token)
         external
         view
@@ -257,10 +268,12 @@ contract DataStore {
             );
     }
 
+    /// @dev Fetches all fulfilled standards
     function allStandards() external view returns (Models.Standard[] memory) {
         return StandardStorageLayer(_standardStorageAddress).allStandards();
     }
 
+    /// @dev Fetches all standards for a minter
     function standardsForMinter(address minter)
         external
         view

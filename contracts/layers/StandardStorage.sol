@@ -13,7 +13,7 @@ interface StandardStorageLayer {
         payable
         returns (uint256);
 
-    function fullfill(uint256 token) external payable;
+    function fulfill(uint256 token) external payable;
 
     function standardForToken(uint256 token)
         external
@@ -29,7 +29,7 @@ interface StandardStorageLayer {
 }
 
 interface StandardVisibility {
-    function standardIsFullfilled(uint256 token) external view returns (bool);
+    function standardIsFulfilled(uint256 token) external view returns (bool);
 }
 
 contract StandardStorage is StandardStorageLayer, StandardVisibility {
@@ -52,8 +52,8 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     // Token Ids for standards
     Counters.Counter private _tokenIds;
 
-    // Fullfilled Ids for fullfilled standard
-    Counters.Counter private _fullfilledId;
+    // Fulfilled Ids for fulfilled standard
+    Counters.Counter private _fulfilledId;
 
     // Standards map
     mapping(uint256 => Models.Standard) private _standards;
@@ -64,8 +64,8 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     // Mapping minter address to token count
     mapping(address => uint256) private _minterBalances;
 
-    // Fullfilled Standard map
-    mapping(uint256 => uint256) private _fullfilledStandards;
+    // Fulfilled Standard map
+    mapping(uint256 => uint256) private _fulfilledStandards;
 
     // Minters of standard map
     mapping(uint256 => address) private _standardMinters;
@@ -89,6 +89,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         _tokenIds.increment();
     }
 
+    /// @dev Contract fallback method
     fallback() external {
         console.log("Standard Storage Transaction failed.");
     }
@@ -150,6 +151,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
 
     // MARK: - External Write Methods
 
+    /// @dev Interface method to mint new standard
     function mint(Models.BasicStandard memory basicStandard)
         external
         payable
@@ -171,14 +173,16 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         return standard.token;
     }
 
-    function fullfill(uint256 token) external payable override _onlyValidator {
-        _fullfillStandard(token);
+    /// @dev Interface method to fulfill validated standard
+    function fulfill(uint256 token) external payable override _onlyValidator {
+        _fulfillStandard(token);
 
         emit NewStandard(Models.rawStandard(_standards[token]));
     }
 
     // MARK: - Fetch Methods
 
+    /// @dev Standard for specified token
     function standardForToken(uint256 token)
         external
         view
@@ -193,6 +197,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         return Models.rawStandard(result);
     }
 
+    /// @dev All standards in storage
     function allStandards()
         external
         view
@@ -200,17 +205,18 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         _onlySurface
         returns (Models.Standard[] memory)
     {
-        uint256 length = _fullfilledId.current();
+        uint256 length = _fulfilledId.current();
         Models.Standard[] memory result = new Models.Standard[](length);
 
         for (uint256 i = 0; i < length; i += 1) {
-            uint256 token = _fullfilledStandards[i];
+            uint256 token = _fulfilledStandards[i];
             result[i] = Models.rawStandard(_standards[token]);
         }
 
         return result;
     }
 
+    /// @dev Standards for specified minter address
     function standardsForMinter(address minter)
         external
         view
@@ -251,12 +257,12 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         _standardMinters[standard.token] = standard.minter;
     }
 
-    /// @dev Fullfills a standard to the contract
-    function _fullfillStandard(uint256 token) private {
+    /// @dev Fulfills a standard to the contract
+    function _fulfillStandard(uint256 token) private {
         require(_standardIsPending(token), "Standard is not pending.");
 
-        _fullfilledStandards[_fullfilledId.current()] = token;
-        _fullfilledId.increment();
+        _fulfilledStandards[_fulfilledId.current()] = token;
+        _fulfilledId.increment();
 
         _standardBalances[token]++;
         _minterBalances[_standards[token].minter]++;
@@ -290,7 +296,7 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
         return _standardBalances[token] != 0;
     }
 
-    function standardIsFullfilled(uint256 token)
+    function standardIsFulfilled(uint256 token)
         external
         view
         override

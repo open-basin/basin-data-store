@@ -1,11 +1,10 @@
 const hre = require("hardhat");
-const { utils } = require("./utils/utils.js");
 const { constants } = require("./utils/constants.js");
 
 const main = async () => {
     const network = process.env.NETWORK;
     const owner = process.env.PUBLIC_KEY;
-    const bank = "0x4024Cc01550ae7BDA872767f371F6EacDE6C3B5e"
+    const bank = process.env.BANK;
 
     var chainAddress = "";
     var oracleAddress = "";
@@ -35,9 +34,9 @@ const main = async () => {
             break;
     }
 
-    console.log("Deploying to", network);
+    console.log("-----------------------");
     console.log("Deploying contracts with", owner);
-
+    console.log("Deploying to", network);
     console.log("-----------------------");
 
     const standardStorageContractFactory = await hre.ethers.getContractFactory('StandardStorage');
@@ -98,13 +97,14 @@ const main = async () => {
     );
     await dataStoreContract.deployed();
     console.log("Data Store contract deployed to:", dataStoreContract.address);
-    
+
     console.log("-----------------------");
 
     let setBank = await dataStoreContract.changeBank(bank);
     await setBank.wait();
 
-    let setBankFees = await dataStoreContract.changeFees(hre.ethers.utils.parseEther("0.00002"),
+    let setBankFees = await dataStoreContract.changeFees(
+        hre.ethers.utils.parseEther("0.00002"),
         hre.ethers.utils.parseEther("0.00001"),
         hre.ethers.utils.parseEther("0.00001"),
         hre.ethers.utils.parseEther("0.00001"));

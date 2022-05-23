@@ -13,7 +13,10 @@ import {Models} from "../libraries/Models.sol";
 import {DataStorageLayer} from "./DataStorage.sol";
 
 interface DataValidationLayer {
-    function validateAndMintData(Models.BasicData memory data) external payable returns (uint256);
+    function validateAndMintData(Models.BasicData memory data)
+        external
+        payable
+        returns (uint256);
 }
 
 contract DataValidation is DataValidationLayer, ChainlinkClient {
@@ -60,6 +63,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         );
     }
 
+    /// @dev Contract fallback method
     fallback() external {
         console.log("Data Validation Transaction failed.");
     }
@@ -111,6 +115,7 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
 
     // MARK: - Public
 
+    /// @dev Interface method to validate and mint new data
     function validateAndMintData(Models.BasicData memory data)
         external
         payable
@@ -127,7 +132,10 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
 
     // MARK: - Chainlink integration
 
-    function _requestDataValidation(Models.BasicData memory data, uint256 token) private {
+    /// @dev Requests standard validation from Chainlink oracle
+    function _requestDataValidation(Models.BasicData memory data, uint256 token)
+        private
+    {
         Chainlink.Request memory request = buildChainlinkRequest(
             _configuration.jobId,
             address(this),
@@ -147,13 +155,14 @@ contract DataValidation is DataValidationLayer, ChainlinkClient {
         );
     }
 
+    /// @dev Fulfills validated data
     function fulfill(bytes32 _requestId, uint256 _token)
         external
         recordChainlinkFulfillment(_requestId)
     {
         require(responseIsValid(_token), "Data Validator denied transaction");
 
-        DataStorageLayer(_dataStorageAddress).fullfill(_token);
+        DataStorageLayer(_dataStorageAddress).fulfill(_token);
     }
 
     // MARK: - Helpers

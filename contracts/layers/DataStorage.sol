@@ -15,7 +15,7 @@ interface DataStorageLayer {
         payable
         returns (uint256);
 
-    function fullfill(uint256 token) external payable;
+    function fulfill(uint256 token) external payable;
 
     function burn(Models.Data memory data) external;
 
@@ -40,8 +40,11 @@ interface DataStorageLayer {
         external
         view
         returns (Models.Data[] memory);
-        
-    function dataForProvider(address provider) external view returns (Models.Data[] memory);
+
+    function dataForProvider(address provider)
+        external
+        view
+        returns (Models.Data[] memory);
 }
 
 contract DataStorage is DataStorageLayer {
@@ -64,8 +67,8 @@ contract DataStorage is DataStorageLayer {
     // Token Ids for data
     Counters.Counter private _tokenIds;
 
-    // Fullfilled Ids for fullfilled data
-    Counters.Counter private _fullfilledId;
+    // Fulfilled Ids for fulfilled data
+    Counters.Counter private _fulfilledId;
 
     // Data map
     mapping(uint256 => Models.Data) private _data;
@@ -73,8 +76,8 @@ contract DataStorage is DataStorageLayer {
     // Data Balance
     mapping(uint256 => uint256) private _dataBalance;
 
-    // Fullfilled Data map
-    mapping(uint256 => uint256) private _fullfilledData;
+    // Fulfilled Data map
+    mapping(uint256 => uint256) private _fulfilledData;
 
     // Owners of data map
     mapping(uint256 => address) private _dataOwners;
@@ -120,6 +123,7 @@ contract DataStorage is DataStorageLayer {
         _tokenIds.increment();
     }
 
+    /// @dev Contract fallback method
     fallback() external {
         console.log("Data Storage Transaction failed.");
     }
@@ -171,8 +175,9 @@ contract DataStorage is DataStorageLayer {
         _standardVisibilityAddress = standardVisibilityAddress;
     }
 
-    // MARK: - External
+    // MARK: - External Write Methods
 
+    /// @dev Interface method to mint new data
     function mint(Models.BasicData memory basicData)
         external
         payable
@@ -196,12 +201,14 @@ contract DataStorage is DataStorageLayer {
         return data.token;
     }
 
-    function fullfill(uint256 token) external payable override _onlyValidator {
-        _fullfillData(token);
+    /// @dev Interface method to fulfill validated data
+    function fulfill(uint256 token) external payable override _onlyValidator {
+        _fulfillData(token);
 
         emit NewData(_data[token]);
     }
 
+    /// @dev Interface method to burn data
     function burn(Models.Data memory data) external override _onlySurface {
         _burnData(data);
 
@@ -210,6 +217,7 @@ contract DataStorage is DataStorageLayer {
         return;
     }
 
+    /// @dev Interface method to transfer data
     function transfer(uint256 token, address to)
         external
         override
@@ -222,6 +230,9 @@ contract DataStorage is DataStorageLayer {
         return;
     }
 
+    // MARK: - Fetch methods
+
+    /// @dev Data for a specified token
     function dataForToken(uint256 token)
         external
         view
@@ -236,6 +247,7 @@ contract DataStorage is DataStorageLayer {
         return Models.rawData(result);
     }
 
+    /// @dev Data for a specified owner address
     function dataForOwner(address owner)
         external
         view
@@ -263,6 +275,7 @@ contract DataStorage is DataStorageLayer {
         return result;
     }
 
+    /// @dev Data for a specified standard
     function dataForStandard(uint256 standard)
         external
         view
@@ -290,6 +303,7 @@ contract DataStorage is DataStorageLayer {
         return result;
     }
 
+    /// @dev Data for a specified owner and standard
     function dataForOwnerInStandard(address owner, uint256 standard)
         external
         view
@@ -304,7 +318,11 @@ contract DataStorage is DataStorageLayer {
         Models.Data[] memory result = new Models.Data[](balance);
 
         uint256 counter = 0;
-        for (uint256 i = 0; i < _tokenIds.current() && counter < balance; i += 1) {
+        for (
+            uint256 i = 0;
+            i < _tokenIds.current() && counter < balance;
+            i += 1
+        ) {
             if (owner == _dataOwners[i] && standard == _dataStandards[i]) {
                 result[counter] = Models.rawData(_data[i]);
                 counter++;
@@ -314,7 +332,14 @@ contract DataStorage is DataStorageLayer {
         return result;
     }
 
-    function dataForProvider(address provider) external view override _onlySurface returns (Models.Data[] memory) {
+    /// @dev Data for a specified provider
+    function dataForProvider(address provider)
+        external
+        view
+        override
+        _onlySurface
+        returns (Models.Data[] memory)
+    {
         require(_validAddress(provider), "Provider is not valid.");
 
         uint256 balance = _providerBalances[provider];
@@ -345,14 +370,14 @@ contract DataStorage is DataStorageLayer {
         _data[data.token] = data;
     }
 
-    /// @dev Fullfills Data to the contract
-    function _fullfillData(uint256 token) private {
+    /// @dev Fulfills Data to the contract
+    function _fulfillData(uint256 token) private {
         require(_dataIsPending(token), "Standard is not pending.");
 
         Models.Data memory data = _data[token];
 
-        _fullfilledData[_fullfilledId.current()] = token;
-        _fullfilledId.increment();
+        _fulfilledData[_fulfilledId.current()] = token;
+        _fulfilledId.increment();
 
         _dataOwners[data.token] = data.owner;
         _dataStandards[data.token] = data.standard;
@@ -385,6 +410,7 @@ contract DataStorage is DataStorageLayer {
 
     // MARK: - Transfer methods
 
+    /// @dev Transfers data from owner to address
     function _transferData(uint256 token, address to) private {
         require(_tokenExists(token), "Data does not exists.");
         require(_validAddress(tx.origin), "Owner address is invalid.");
@@ -443,7 +469,7 @@ contract DataStorage is DataStorageLayer {
 
     function _standardExists(uint256 token) private view returns (bool) {
         return
-            StandardVisibility(_standardVisibilityAddress).standardIsFullfilled(
+            StandardVisibility(_standardVisibilityAddress).standardIsFulfilled(
                 token
             );
     }

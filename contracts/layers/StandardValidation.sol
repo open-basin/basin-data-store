@@ -15,7 +15,8 @@ import {StandardStorageLayer} from "./StandardStorage.sol";
 interface StandardValidationLayer {
     function validateAndMintStandard(Models.BasicStandard memory standard)
         external
-        payable returns (uint256);
+        payable
+        returns (uint256);
 }
 
 contract StandardValidation is StandardValidationLayer, ChainlinkClient {
@@ -68,6 +69,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         );
     }
 
+    /// @dev Contract fallback method
     fallback() external {
         console.log("Standard Validation Transaction failed.");
     }
@@ -119,6 +121,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
 
     // MARK: - Public
 
+    /// @dev Interface method to validate and mint a new standard
     function validateAndMintStandard(Models.BasicStandard memory standard)
         external
         payable
@@ -137,6 +140,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
 
     // MARK: - Chainlink integration
 
+    /// @dev Requests standard validation from Chainlink oracle
     function _requestStandardValidation(
         Models.BasicStandard memory standard,
         uint256 token
@@ -157,6 +161,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
         );
     }
 
+    /// @dev Fulfills validated standard
     function fulfill(bytes32 _requestId, uint256 _token)
         external
         recordChainlinkFulfillment(_requestId)
@@ -166,7 +171,7 @@ contract StandardValidation is StandardValidationLayer, ChainlinkClient {
             "Standard Validator denied transaction"
         );
 
-        StandardStorageLayer(_standardStorageAddress).fullfill(_token);
+        StandardStorageLayer(_standardStorageAddress).fulfill(_token);
     }
 
     // MARK: - Helpers
