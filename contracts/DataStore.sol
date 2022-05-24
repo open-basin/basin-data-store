@@ -47,6 +47,26 @@ contract DataStore {
     // Standard Validation Contract Address
     address private _standardValidationAddress;
 
+    // New Standard Event
+    event NewStandard(
+        uint256 indexed token
+    );
+
+    // New Data Event
+    event NewData(
+        uint256 indexed token
+    );
+
+    // New data transfer event
+    event NewTransfer(
+        uint256 indexed token,
+        address indexed to,
+        address indexed from
+    );
+
+    // New data burn event
+    event NewBurn(uint256 indexed token, address indexed owner);
+
     // MARK: - Contract Constructor
 
     // Constructor
@@ -143,7 +163,6 @@ contract DataStore {
     function createStandard(string memory name, string memory schema)
         external
         payable
-        returns (uint256)
     {
         require(msg.value >= _standardFee, "Must have value.");
 
@@ -159,7 +178,7 @@ contract DataStore {
         // Pay bank
         _distribute(_bank, _standardFee);
 
-        return token;
+        emit NewStandard(token);
     }
 
     /// @dev Stores a data in data storage
@@ -167,7 +186,7 @@ contract DataStore {
         address provider,
         uint256 standard,
         string memory payload
-    ) external payable returns (uint256) {
+    ) external payable {
         require(msg.value >= (_providerFee + _dataFee), "Must have value");
 
         Models.BasicData memory data = Models.BasicData(
@@ -184,7 +203,7 @@ contract DataStore {
         _distribute(payable(data.provider), _providerFee);
         _distribute(_bank, _dataFee);
 
-        return token;
+        emit NewData(token);
     }
 
     /// @dev Burns data from storage
@@ -193,6 +212,8 @@ contract DataStore {
             .dataForToken(token);
 
         DataStorageLayer(_dataStorageAddress).burn(data);
+
+        emit NewBurn(token, data.owner);
     }
 
     /// @dev Transfers data to address
@@ -203,6 +224,8 @@ contract DataStore {
 
         // Pay bank
         _distribute(_bank, _transferFee);
+
+        emit NewTransfer(token, to, msg.sender);
     }
 
     // MARK: - External Fetch Methods

@@ -71,7 +71,10 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     mapping(uint256 => address) private _standardMinters;
 
     // New Standard event
-    event NewStandard(Models.Standard standard);
+    event NewStandard(
+        uint256 indexed token,
+        address indexed minter
+    );
 
     // Constructor
     constructor(
@@ -177,7 +180,10 @@ contract StandardStorage is StandardStorageLayer, StandardVisibility {
     function fulfill(uint256 token) external payable override _onlyValidator {
         _fulfillStandard(token);
 
-        emit NewStandard(Models.rawStandard(_standards[token]));
+        emit NewStandard(
+            _standards[token].token,
+            _standards[token].minter
+        );
     }
 
     // MARK: - Fetch Methods

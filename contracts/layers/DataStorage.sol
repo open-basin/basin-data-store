@@ -99,13 +99,10 @@ contract DataStorage is DataStorageLayer {
         private _ownerStandardBalances;
 
     // New data event
-    event NewData(Models.Data data);
-
-    // New data transfer event
-    event NewTransfer(Models.Data data);
-
-    // New data burn event
-    event NewBurn(uint256 token);
+    event NewData(
+        uint256 indexed token,
+        address indexed owner
+    );
 
     // Constructor
     constructor(
@@ -205,14 +202,12 @@ contract DataStorage is DataStorageLayer {
     function fulfill(uint256 token) external payable override _onlyValidator {
         _fulfillData(token);
 
-        emit NewData(_data[token]);
+        emit NewData(_data[token].token, _data[token].owner);
     }
 
     /// @dev Interface method to burn data
     function burn(Models.Data memory data) external override _onlySurface {
         _burnData(data);
-
-        emit NewBurn(data.token);
 
         return;
     }
@@ -224,8 +219,6 @@ contract DataStorage is DataStorageLayer {
         _onlySurface
     {
         _transferData(token, to);
-
-        emit NewTransfer(_data[token]);
 
         return;
     }
