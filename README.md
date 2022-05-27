@@ -1,7 +1,7 @@
 # Basin Data Store
 
 <p align="center">
-  <img  src="https://user-images.githubusercontent.com/33267791/151896755-8b2e3c78-b8ae-48d7-9610-4b89a96e72c3.png" />
+  <img  src="https://user-images.githubusercontent.com/33267791/170798370-df5de004-946e-48d8-9cb9-28d0ccd65b41.png" />
 </p>
 <h3 align="center">Making data customizable and transportable</h3>
 
