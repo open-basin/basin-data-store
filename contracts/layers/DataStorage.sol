@@ -101,7 +101,8 @@ contract DataStorage is DataStorageLayer {
     // New data event
     event NewData(
         uint256 indexed token,
-        address indexed owner
+        address indexed owner,
+        uint256 indexed standard
     );
 
     // Constructor
@@ -202,7 +203,11 @@ contract DataStorage is DataStorageLayer {
     function fulfill(uint256 token) external payable override _onlyValidator {
         _fulfillData(token);
 
-        emit NewData(_data[token].token, _data[token].owner);
+        emit NewData(
+            _data[token].token,
+            _data[token].owner,
+            _data[token].standard
+        );
     }
 
     /// @dev Interface method to burn data

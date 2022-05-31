@@ -48,24 +48,25 @@ contract DataStore {
     address private _standardValidationAddress;
 
     // New Standard Event
-    event NewStandard(
-        uint256 indexed token
-    );
+    event NewStandard(uint256 indexed token);
 
     // New Data Event
-    event NewData(
-        uint256 indexed token
-    );
+    event NewData(uint256 indexed token);
 
     // New data transfer event
     event NewTransfer(
-        uint256 indexed token,
+        uint256 token,
         address indexed to,
-        address indexed from
+        address indexed from,
+        uint256 indexed standard
     );
 
     // New data burn event
-    event NewBurn(uint256 indexed token, address indexed owner);
+    event NewBurn(
+        uint256 indexed token,
+        address indexed owner,
+        uint256 indexed standard
+    );
 
     // MARK: - Contract Constructor
 
@@ -213,7 +214,7 @@ contract DataStore {
 
         DataStorageLayer(_dataStorageAddress).burn(data);
 
-        emit NewBurn(token, data.owner);
+        emit NewBurn(token, data.owner, data.standard);
     }
 
     /// @dev Transfers data to address
@@ -225,7 +226,10 @@ contract DataStore {
         // Pay bank
         _distribute(_bank, _transferFee);
 
-        emit NewTransfer(token, to, msg.sender);
+        Models.Data memory data = DataStorageLayer(_dataStorageAddress)
+            .dataForToken(token);
+
+        emit NewTransfer(token, to, msg.sender, data.standard);
     }
 
     // MARK: - External Fetch Methods
